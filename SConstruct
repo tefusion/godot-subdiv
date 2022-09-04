@@ -29,8 +29,9 @@ thirdparty_sources = [
 ]
 thirdparty_sources = [thirdparty_dir +
                       file for file in thirdparty_sources]
-env.Append(CPPPATH=["src/", thirdparty_dir])
 
+env.Append(CPPPATH=["src/", thirdparty_dir])
+env.Append(CPPDEFINES=["_USE_MATH_DEFINES"])
 
 sources = Glob("src/*.cpp")
 sources.extend(thirdparty_sources)
