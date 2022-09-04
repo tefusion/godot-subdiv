@@ -44,33 +44,33 @@ jobs:
             arch: arm64
 
     steps:
-#      - name: (Bionic) Change package sources
-#        if: ${{ matrix.runner == 'ubuntu-18.04' }}
-#        shell: sh
-#        run: |
-#          sudo rm -f /etc/apt/sources.list.d/*
-#          sudo tee -a /etc/apt/sources.list << EOT
-#          deb http://archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted universe multiverse
-#          EOT
-#          
-#          sudo apt-get update
+      #      - name: (Bionic) Change package sources
+      #        if: ${{ matrix.runner == 'ubuntu-18.04' }}
+      #        shell: sh
+      #        run: |
+      #          sudo rm -f /etc/apt/sources.list.d/*
+      #          sudo tee -a /etc/apt/sources.list << EOT
+      #          deb http://archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted universe multiverse
+      #          EOT
+      #
+      #          sudo apt-get update
 
-#      - name: (Focal) Change package sources
-#        if: ${{ matrix.runner == 'ubuntu-20.04' }}
-#        shell: sh
-#        run: |
-#          sudo rm -f /etc/apt/sources.list.d/*
-#          sudo tee -a /etc/apt/sources.list << EOT
-#          deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse
-#          deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse
-#          EOT
-#          
-#          sudo apt-get update
+      #      - name: (Focal) Change package sources
+      #        if: ${{ matrix.runner == 'ubuntu-20.04' }}
+      #        shell: sh
+      #        run: |
+      #          sudo rm -f /etc/apt/sources.list.d/*
+      #          sudo tee -a /etc/apt/sources.list << EOT
+      #          deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse
+      #          deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse
+      #          EOT
+      #
+      #          sudo apt-get update
 
       - name: (Windows) Install mingw64
         if: ${{ startsWith(matrix.identifier, 'windows-') }}
@@ -111,36 +111,36 @@ jobs:
         with:
           submodules: recursive
 
-#       TODO: Cache doesn't work yet. SCons rebuilds the objects even if they already exist. Could be caused by modification dates or extension_api.json.
-#             fetch-depth: 0 May be needed for cache. See: <https://github.com/actions/checkout/issues/468>.
-#      - name: Set up SCons cache
-#        uses: actions/cache@v3
-#        with:
-#          path: |
-#            ${{ github.workspace }}/.scons-cache/
-#            ${{ github.workspace }}/**/.sconsign.dblite
-#            ${{ github.workspace }}/godot-cpp/gen/
-#          key: ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
-#          restore-keys: |
-#            ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
-#            ${{ matrix.identifier }}-${{ github.ref }}
-#            ${{ matrix.identifier }}
+      #       TODO: Cache doesn't work yet. SCons rebuilds the objects even if they already exist. Could be caused by modification dates or extension_api.json.
+      #             fetch-depth: 0 May be needed for cache. See: <https://github.com/actions/checkout/issues/468>.
+      #      - name: Set up SCons cache
+      #        uses: actions/cache@v3
+      #        with:
+      #          path: |
+      #            ${{ github.workspace }}/.scons-cache/
+      #            ${{ github.workspace }}/**/.sconsign.dblite
+      #            ${{ github.workspace }}/godot-cpp/gen/
+      #          key: ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
+      #          restore-keys: |
+      #            ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
+      #            ${{ matrix.identifier }}-${{ github.ref }}
+      #            ${{ matrix.identifier }}
 
       - name: Compile extension
         shell: sh
-#        env:
-#          SCONS_CACHE: '${{ github.workspace }}/.scons-cache/'
-#          SCONS_CACHE_LIMIT: 8192
+        #        env:
+        #          SCONS_CACHE: '${{ github.workspace }}/.scons-cache/'
+        #          SCONS_CACHE_LIMIT: 8192
         run: |
           scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' -j2
           ls -l project/addons/*/bin/
 
-      - name: Copy extra files to addon
-        shell: sh
-        run: |
-          for addon in ${{ github.workspace }}/project/addons/*/; do
-            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' "$addon"
-          done
+      # - name: Copy extra files to addon
+      #   shell: sh
+      #   run: |
+      #     for addon in ${{ github.workspace }}/project/addons/*/; do
+      #       cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' "$addon"
+      #     done
 
       - name: Get version name
         id: version
