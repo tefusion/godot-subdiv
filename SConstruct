@@ -3,30 +3,49 @@ import os
 from glob import glob
 from pathlib import Path
 
-# TODO: Do not copy environment after godot-cpp/test is updated <https://github.com/godotengine/godot-cpp/blob/master/test/SConstruct>.
 env = SConscript("godot-cpp/SConstruct")
 
-# Add source files.
-env.Append(CPPPATH=["src/"])
+# build with already installed static lib, also need to remove third_party_dir from CPPPath and maybe change LIBPATH
+# env.Append(CPPPATH=["src/", "/usr/include"])
+# env.Append(LIBPATH='/usr/lib')
+# env.Append(LIBS=["osdGPU"])
+
+# compile local
+thirdparty_dir = "thirdparty/opensubdiv/"
+thirdparty_sources = [
+    "far/error.cpp",
+    "far/topologyDescriptor.cpp",
+    "far/topologyRefiner.cpp",
+    "far/topologyRefinerFactory.cpp",
+    "sdc/crease.cpp",
+    "sdc/typeTraits.cpp",
+    "vtr/fvarLevel.cpp",
+    "vtr/fvarRefinement.cpp",
+    "vtr/level.cpp",
+    "vtr/quadRefinement.cpp",
+    "vtr/refinement.cpp",
+    "vtr/sparseSelector.cpp",
+    "vtr/triRefinement.cpp",
+]
+thirdparty_sources = [thirdparty_dir +
+                      file for file in thirdparty_sources]
+env.Append(CPPPATH=["src/", thirdparty_dir])
+
+
 sources = Glob("src/*.cpp")
+sources.extend(thirdparty_sources)
 
 # Find gdextension path even if the directory or extension is renamed.
-# Example: project/addons/example/example.gdextension
 (extension_path,) = glob("project/addons/*/*.gdextension")
 
-# Find the addon path (e.g. project/addons/example).
+# Find the addon path
 addon_path = Path(extension_path).parent
 
 # Find the extension name from the gdextension file (e.g. example).
 extension_name = Path(extension_path).stem
 
-# TODO: Cache is disabled currently.
-# scons_cache_path = os.environ.get("SCONS_CACHE")
-# if scons_cache_path != None:
-#     CacheDir(scons_cache_path)
-#     print("Scons cache enabled... (path: '" + scons_cache_path + "')")
 
-# Create the library target (e.g. libexample.linux.debug.x86_64.so).
+# Create the library target
 if env["platform"] == "osx":
     library = env.SharedLibrary(
         "{}/bin/lib{}.{}.{}.framework/{1}.{2}.{3}".format(
