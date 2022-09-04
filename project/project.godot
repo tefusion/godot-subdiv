@@ -10,6 +10,9 @@ config_version=5
 
 [application]
 
-config/name="example"
-run/main_scene="res://demo/demo.tscn"
+config/name="Godot Subdiv Test Project"
 config/features=PackedStringArray("4.0", "Vulkan Clustered")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_subdiv/plugin.cfg")
