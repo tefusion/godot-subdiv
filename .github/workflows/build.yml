@@ -135,12 +135,19 @@ jobs:
           scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' -j2
           ls -l project/addons/*/bin/
 
-      - name: Copy extra files to addon
+      - name: Copy README and LICENSE
         shell: sh
         run: |
           for addon in ${{ github.workspace }}/project/addons/*/; do
             cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' "$addon"
           done
+      - name: Copy GD Plugin files
+      shell: sh
+      #specifically made for godot_subdiv folder
+      run: |
+        for plugin_file in ${{ github.workspace }}/project/addons/godot_subdiv/; do 
+            cp --no-clobber '${{ github.workspace }}/plugin_file "$addon"
+        done
 
       - name: Get version name
         id: version
@@ -151,4 +158,4 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}_${{ steps.version.outputs.version }}
           path: |
-            ${{ github.workspace }}/project/
+            ${{ github.workspace }}/project/addons/godot_subdiv
