@@ -151,4 +151,4 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}_${{ steps.version.outputs.version }}
           path: |
-            ${{ github.workspace }}/project/addons/godot_subdiv/
+            ${{ github.workspace }}/project/

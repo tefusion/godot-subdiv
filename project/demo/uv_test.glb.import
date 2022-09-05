@@ -1,0 +1,14 @@
+[remap]
+
+importer="quad.gltf_importer"
+type="PackedScene"
+uid="uid://bny8ojowjhmo0"
+path="res://.godot/imported/uv_test.glb-c94f92cac1b07af644378ecb59b9bf7f.scn"
+
+[deps]
+
+source_file="res://demo/uv_test.glb"
+dest_files=["res://.godot/imported/uv_test.glb-c94f92cac1b07af644378ecb59b9bf7f.scn"]
+
+[params]
+

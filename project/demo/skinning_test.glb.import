@@ -1,0 +1,14 @@
+[remap]
+
+importer="quad.gltf_importer"
+type="PackedScene"
+uid="uid://uu46rcmtibe6"
+path="res://.godot/imported/skinning_test.glb-057980e2b0ac30f85636ac20da7d168e.scn"
+
+[deps]
+
+source_file="res://demo/skinning_test.glb"
+dest_files=["res://.godot/imported/skinning_test.glb-057980e2b0ac30f85636ac20da7d168e.scn"]
+
+[params]
+
