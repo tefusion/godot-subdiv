@@ -7,13 +7,27 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/godot.hpp>
 
+#include "gltf_quad_importer.hpp"
+#include "importer_quad_mesh.hpp"
+#include "quad_mesh_instance_3d.hpp"
+#include "subdivision_mesh.hpp"
+#include "subdivision_server.hpp"
+
 using namespace godot;
+
+static SubdivisionServer *_subdivision_server;
 
 void gdextension_initialize(ModuleInitializationLevel p_level)
 {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE)
 	{
-		// classes here
+		ClassDB::register_class<SubdivisionServer>();
+		ClassDB::register_class<ImporterQuadMesh>();
+		ClassDB::register_class<QuadMeshInstance3D>();
+		ClassDB::register_class<SubdivisionMesh>();
+		ClassDB::register_class<GLTFQuadImporter>();
+		_subdivision_server = memnew(SubdivisionServer);
+		Engine::get_singleton()->register_singleton("SubdivisionServer", _subdivision_server);
 	}
 }
 
@@ -21,7 +35,8 @@ void gdextension_terminate(ModuleInitializationLevel p_level)
 {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE)
 	{
-		// unregister singleton here
+		Engine::get_singleton()->unregister_singleton("SubdivisionServer");
+		memdelete(_subdivision_server);
 	}
 }
 
