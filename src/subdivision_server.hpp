@@ -1,14 +1,13 @@
 #ifndef SUBDIVISION_SERVER_H
 #define SUBDIVISION_SERVER_H
 
-#include <godot_cpp/classes/global_constants.hpp>
-#include <godot_cpp/core/binder_common.hpp>
+#include "godot_cpp/classes/global_constants.hpp"
+#include "godot_cpp/core/binder_common.hpp"
 
 //#include <godot_cpp/classes/mesh.hpp>
 
-#include "subdiv_structs.hpp"
-#include <godot_cpp/templates/hash_map.hpp>
-#include <godot_cpp/templates/vector.hpp>
+#include "godot_cpp/templates/hash_map.hpp"
+#include "godot_cpp/templates/vector.hpp"
 
 class SubdivisionMesh;
 class ImporterQuadMesh;

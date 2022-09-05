@@ -34,7 +34,9 @@ env.Append(CPPPATH=["src/", thirdparty_dir])
 env.Append(CPPDEFINES=["_USE_MATH_DEFINES"])
 
 sources = Glob("src/*.cpp")
+sources.extend(Glob("src/import/*.cpp"))
 sources.extend(thirdparty_sources)
+
 
 # Find gdextension path even if the directory or extension is renamed.
 (extension_path,) = glob("project/addons/*/*.gdextension")

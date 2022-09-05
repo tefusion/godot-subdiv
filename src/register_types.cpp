@@ -1,13 +1,13 @@
 #include "register_types.h"
 
-#include <godot/gdnative_interface.h>
+#include "godot/gdnative_interface.h"
 
-#include <godot_cpp/classes/engine.hpp>
-#include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/core/defs.hpp>
-#include <godot_cpp/godot.hpp>
+#include "godot_cpp/classes/engine.hpp"
+#include "godot_cpp/core/class_db.hpp"
+#include "godot_cpp/core/defs.hpp"
+#include "godot_cpp/godot.hpp"
 
-#include "gltf_quad_importer.hpp"
+#include "import/gltf_quad_importer.hpp"
 #include "importer_quad_mesh.hpp"
 #include "quad_mesh_instance_3d.hpp"
 #include "subdivision_mesh.hpp"

@@ -1,17 +1,14 @@
 #ifndef IMPORTER_QUAD_MESH_H
 #define IMPORTER_QUAD_MESH_H
 
-#include <godot_cpp/classes/global_constants.hpp>
-#include <godot_cpp/core/binder_common.hpp>
+#include "godot_cpp/classes/global_constants.hpp"
+#include "godot_cpp/core/binder_common.hpp"
 
-// //#include "godot_cpp/classes/ref.hpp"
-// //#include "godot_cpp/classes/material.hpp"
-#include "godot_cpp/classes/resource.hpp"
-// #include "godot_cpp/core/math.hpp"
 #include "godot_cpp/classes/array_mesh.hpp"
 #include "godot_cpp/classes/material.hpp"
+#include "godot_cpp/classes/mesh.hpp"
+#include "godot_cpp/classes/resource.hpp"
 #include "godot_cpp/templates/vector.hpp"
-#include <godot_cpp/classes/mesh.hpp>
 
 using namespace godot;
 

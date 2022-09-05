@@ -161,7 +161,9 @@ void QuadMeshInstance3D::_update_skinning() {
 		PackedVector3Array vertex_array = mesh_arrays[ImporterQuadMesh::ARRAY_VERTEX];
 		const PackedInt32Array &bones_array = mesh_arrays[ImporterQuadMesh::ARRAY_BONES];
 		const PackedFloat32Array &weights_array = mesh_arrays[ImporterQuadMesh::ARRAY_WEIGHTS];
+
 		ERR_FAIL_COND(bones_array.size() != weights_array.size() || bones_array.size() != vertex_array.size() * 4);
+
 		//TODO: add format to quad mesh
 		// ERR_CONTINUE(0 == (format_read & Mesh::ARRAY_FORMAT_BONES));
 		// ERR_CONTINUE(0 == (format_read & Mesh::ARRAY_FORMAT_WEIGHTS));

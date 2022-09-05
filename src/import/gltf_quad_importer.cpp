@@ -4,7 +4,10 @@
 #include "godot_cpp/templates/hash_set.hpp"
 #include "quad_mesh_instance_3d.hpp"
 
+#include "godot_cpp/classes/array_mesh.hpp"
 #include "godot_cpp/classes/importer_mesh.hpp"
+#include "godot_cpp/classes/importer_mesh_instance3d.hpp"
+#include "godot_cpp/classes/mesh_instance3d.hpp"
 #include "godot_cpp/classes/scene_tree.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 
@@ -16,7 +19,7 @@ GLTFQuadImporter::~GLTFQuadImporter() {
 
 void GLTFQuadImporter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("convert_importer_meshinstance_to_quad"), &GLTFQuadImporter::convert_importer_meshinstance_to_quad);
-	// ClassDB::bind_method(D_METHOD("convert_meshinstance_to_quad", "MeshInstance3D"), &GLTFQuadImporter::convert_meshinstance_to_quad);
+	ClassDB::bind_method(D_METHOD("convert_meshinstance_to_quad", "MeshInstance3D"), &GLTFQuadImporter::convert_meshinstance_to_quad);
 }
 
 // TODO: blendshape conversion, also needs to happen here
@@ -126,45 +129,21 @@ PackedInt32Array GLTFQuadImporter::_generate_uv_index_array(PackedVector2Array &
 	return uv_index_array;
 }
 
-// void GLTFQuadImporter::convert_meshinstance_to_quad(Ref<MeshInstance3D> &p_meshinstance) {
-// 	Ref<Mesh> p_mesh = p_meshinstance->get_mesh();
-// 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
-// 	ImporterQuadMesh quad_mesh;
-// 	SurfaceVertexArrays surface = SurfaceVertexArrays(p_mesh->surface_get_arrays(0));
-// 	SubdivData quad_surface = _remove_duplicate_vertices(surface);
-// 	_merge_to_quads(quad_surface.index_array);
-// }
-
-void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinstance_object) {
-	ImporterMeshInstance3D *p_meshinstance = Object::cast_to<ImporterMeshInstance3D>(p_meshinstance_object);
-	Ref<ImporterMesh> p_mesh = p_meshinstance->get_mesh();
+void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_object) {
+	MeshInstance3D *p_meshinstance = Object::cast_to<MeshInstance3D>(p_meshinstance_object);
+	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
 	ImporterQuadMesh *quad_mesh = memnew(ImporterQuadMesh);
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
-		ERR_FAIL_COND_MSG(p_mesh->get_surface_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
-		Array p_arrays = p_mesh->get_surface_arrays(0);
+		ERR_FAIL_COND_MSG(p_mesh->_surface_get_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
+		Array p_arrays = p_mesh->surface_get_arrays(surface_index);
 		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
-		QuadSurfaceData quad_surface = _remove_duplicate_vertices(surface);
-		_merge_to_quads(quad_surface.index_array, quad_surface.uv_array);
-		ERR_FAIL_COND(quad_surface.index_array.size() / 4 != surface.index_array.size() / 6);
-
-		Array subdiv_surface_array;
-		subdiv_surface_array.resize(ImporterQuadMesh::ARRAY_MAX);
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_NORMAL] = quad_surface.normal_array;
-		// subdiv_surface_array[Mesh::ARRAY_TANGENT]
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_INDEX] = quad_surface.index_array;
-
-		PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
-		subdiv_surface_array[ImporterQuadMesh::ARRAY_UV_INDEX] = uv_index_array;
-		// TODO: add blendshapes
-		quad_mesh->add_surface(subdiv_surface_array, Array(), p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index));
+		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays));
+		ERR_FAIL_COND(!quad_surface_arrays.size());
+		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->surface_get_material(surface_index), p_mesh->surface_get_name(surface_index));
 	}
 
 	QuadMeshInstance3D *quad_mesh_instance = memnew(QuadMeshInstance3D);
@@ -181,6 +160,54 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	p_meshinstance->queue_free();
 }
 
-void GLTFQuadImporter::print_index_array(const SurfaceVertexArrays &surface) {
-	UtilityFunctions::print(surface.index_array);
+void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinstance_object) {
+	ImporterMeshInstance3D *p_meshinstance = Object::cast_to<ImporterMeshInstance3D>(p_meshinstance_object);
+	Ref<ImporterMesh> p_mesh = p_meshinstance->get_mesh();
+	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
+
+	ImporterQuadMesh *quad_mesh = memnew(ImporterQuadMesh);
+	quad_mesh->set_name(p_mesh->get_name());
+	// generate quad_mesh data
+	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
+		ERR_FAIL_COND_MSG(p_mesh->get_surface_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
+		Array p_arrays = p_mesh->get_surface_arrays(surface_index);
+		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
+		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays));
+		ERR_FAIL_COND(!quad_surface_arrays.size());
+		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index));
+	}
+
+	QuadMeshInstance3D *quad_mesh_instance = memnew(QuadMeshInstance3D);
+	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
+	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
+	quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+
+	StringName quad_mesh_instance_name = p_meshinstance->get_name();
+	quad_mesh_instance->set_mesh(quad_mesh);
+
+	// replace importermeshinstance in scene
+	p_meshinstance->replace_by(quad_mesh_instance, false);
+	quad_mesh_instance->set_name(quad_mesh_instance_name);
+	p_meshinstance->queue_free();
+}
+
+// TODO: add blendshapes
+Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &surface) {
+	QuadSurfaceData quad_surface = _remove_duplicate_vertices(surface);
+	_merge_to_quads(quad_surface.index_array, quad_surface.uv_array);
+	ERR_FAIL_COND_V(quad_surface.index_array.size() / 4 != surface.index_array.size() / 6, Array());
+
+	Array quad_surface_arrays;
+	quad_surface_arrays.resize(ImporterQuadMesh::ARRAY_MAX);
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_NORMAL] = quad_surface.normal_array;
+	// quad_surface_arrays[Mesh::ARRAY_TANGENT]
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_INDEX] = quad_surface.index_array;
+
+	PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
+	quad_surface_arrays[ImporterQuadMesh::ARRAY_UV_INDEX] = uv_index_array;
+	return quad_surface_arrays;
 }
