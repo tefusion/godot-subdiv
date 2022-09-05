@@ -4,10 +4,10 @@
 #include "godot_cpp/classes/importer_mesh_instance3d.hpp"
 #include "godot_cpp/classes/mesh_instance3d.hpp"
 #include "subdiv_structs.hpp"
-#include <opensubdiv/far/topologyDescriptor.h>
 #include <godot_cpp/classes/global_constants.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
+
 using namespace godot;
 
 class GLTFQuadImporter : public Object {

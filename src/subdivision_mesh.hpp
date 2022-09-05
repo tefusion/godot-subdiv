@@ -12,7 +12,7 @@
 #include <godot_cpp/templates/vector.hpp>
 
 #include "importer_quad_mesh.hpp"
-#include <opensubdiv/far/topologyDescriptor.h>
+#include <far/topologyDescriptor.h>
 
 using namespace godot;
 

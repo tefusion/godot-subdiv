@@ -10,8 +10,6 @@
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
 
-#include <opensubdiv/far/topologyDescriptor.h>
-
 class SubdivisionMesh;
 class ImporterQuadMesh;
 

@@ -12,12 +12,12 @@
 #include <godot_cpp/templates/vector.hpp>
 #include <godot_cpp/variant/builtin_types.hpp>
 
-#include <opensubdiv/far/primvarRefiner.h>
-#include <opensubdiv/far/topologyDescriptor.h>
+#include "far/primvarRefiner.h"
+#include "far/topologyDescriptor.h"
 
 //debug
-#include <chrono>
-using namespace std::chrono;
+// #include <chrono>
+// using namespace std::chrono;
 
 using namespace OpenSubdiv;
 typedef Far::TopologyDescriptor Descriptor;
@@ -128,7 +128,7 @@ Far::TopologyRefiner *SubdivisionMesh::_create_topology_refiner(
 
 	Sdc::SchemeType type = Sdc::SCHEME_CATMARK;
 	Sdc::Options options;
-	options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
+	options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
 
 	Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
 
@@ -212,7 +212,7 @@ void SubdivisionMesh::_create_subdivision_faces(const SubdivData &subdiv, Far::T
 }
 
 void SubdivisionMesh::update_subdivision(Ref<ImporterQuadMesh> p_mesh, int32_t p_level) {
-	auto start = high_resolution_clock::now(); //time measuring code TODO: comment out before release build
+	//auto start = high_resolution_clock::now(); //time measuring code
 	RenderingServer::get_singleton()->mesh_clear(subdiv_mesh);
 	ERR_FAIL_COND(p_mesh.is_null());
 	ERR_FAIL_COND(p_level < 0);
@@ -244,7 +244,7 @@ void SubdivisionMesh::update_subdivision(Ref<ImporterQuadMesh> p_mesh, int32_t p
 
 		const int num_channels = 1;
 
-		OpenSubdiv::Far::TopologyRefiner *refiner;
+		Far::TopologyRefiner *refiner;
 
 		refiner = _create_topology_refiner(&subdiv, p_level, num_channels);
 		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
@@ -293,11 +293,11 @@ void SubdivisionMesh::update_subdivision(Ref<ImporterQuadMesh> p_mesh, int32_t p
 		subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
 		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
 
-		auto stop = high_resolution_clock::now();
 		// TODO: use mesh_add_surface to share vertex array
 		rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, subdiv_triangle_arrays, Array(), Dictionary(), surface_format);
-		auto duration = duration_cast<milliseconds>(stop - start);
-		UtilityFunctions::print("Time taken for subdivsion: ", duration.count(), "ms");
+		//auto stop = high_resolution_clock::now();
+		//auto duration = duration_cast<milliseconds>(stop - start);
+		//UtilityFunctions::print("Time taken for subdivsion: ", duration.count(), "ms");
 
 		Ref<Material> material = p_mesh->surface_get_material(surface_index);
 		rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
@@ -331,7 +331,7 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 
 	SubdivData subdiv = SubdivData(new_vertex_array, index_array);
 	const int num_channels = 0; //when updating vertices, channels not used
-	OpenSubdiv::Far::TopologyRefiner *refiner;
+	Far::TopologyRefiner *refiner;
 	refiner = _create_topology_refiner(&subdiv, current_level, num_channels);
 	ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
 	_create_subdivision_vertices(&subdiv, refiner, p_level, false);
