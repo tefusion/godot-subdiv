@@ -139,7 +139,7 @@ jobs:
         shell: sh
         run: |
           for addon in ${{ github.workspace }}/project/addons/*/; do
-            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' "$addon"
+            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/AUTHORS.md' "$addon"
           done
 
       - name: Get version name
