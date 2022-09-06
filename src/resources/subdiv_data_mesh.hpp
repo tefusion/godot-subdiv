@@ -12,9 +12,24 @@
 
 using namespace godot;
 
-class SubdivDataMesh : public Resource {
-	GDCLASS(SubdivDataMesh, Resource);
+class SubdivisionMesh;
+class SubdivDataMesh : public Mesh {
+	GDCLASS(SubdivDataMesh, Mesh);
 
+	int64_t _get_surface_count() const override;
+	int64_t _surface_get_array_len(int64_t index) const override;
+	int64_t _surface_get_array_index_len(int64_t index) const override;
+	Array _surface_get_arrays(int64_t index) const;
+	Array _surface_get_blend_shape_arrays(int64_t index) const override;
+	Dictionary _surface_get_lods(int64_t index) const override;
+	int64_t _surface_get_format(int64_t index) const override;
+	int64_t _surface_get_primitive_type(int64_t index) const override;
+	void _surface_set_material(int64_t index, const Ref<Material> &material) override;
+	Ref<Material> _surface_get_material(int64_t index) const override;
+	int64_t _get_blend_shape_count() const override;
+	StringName _get_blend_shape_name(int64_t index) const override;
+	void _set_blend_shape_name(int64_t index, const StringName &name) override;
+	AABB _get_aabb() const override;
 	struct Surface {
 		Array arrays;
 		struct BlendShape {
@@ -24,10 +39,8 @@ class SubdivDataMesh : public Resource {
 		Ref<Material> material;
 		String name;
 		int32_t flags = 0;
+		AABB aabb;
 		//int32_t format;
-
-		void split_normals(const Vector<int> &p_indices, const Vector<Vector3> &p_normals);
-		static void _split_normals(Array &r_arrays, const Vector<int> &p_indices, const Vector<Vector3> &p_normals);
 	};
 	Vector<Surface> surfaces;
 
@@ -35,6 +48,11 @@ protected:
 	void _set_data(const Dictionary &p_data);
 	Dictionary _get_data() const;
 	static void _bind_methods();
+
+	SubdivisionMesh *subdiv_mesh;
+	void _update_subdiv();
+	int32_t subdiv_level = 0;
+	bool valid = false; //variable used to tell from meshinstance to mesh if update subdiv needs to run
 
 public:
 	//extra space for uv index array
@@ -87,13 +105,17 @@ public:
 	Array surface_get_arrays(int p_surface) const;
 	String surface_get_name(int p_surface) const;
 	void surface_set_name(int p_surface, const String &p_name);
-	Ref<Material> surface_get_material(int p_surface) const;
-	void surface_set_material(int p_surface, const Ref<Material> &p_material);
 	void surface_set_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);
 	PackedVector3Array surface_get_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);
-	int32_t get_surface_count();
 	int surface_get_length(int p_surface);
 	void clear();
+
+	RID get_rid() const;
+	bool is_valid() const;
+	void set_valid();
+
+	void set_subdiv_level(int p_level);
+	int32_t get_subdiv_level() const;
 };
 
 #endif

@@ -55,7 +55,7 @@ private:
 	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(
 			const SubdivData &subdiv, const int num_channels);
 	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(
-			SubdivData *subdiv, int32_t p_level, const int num_channels);
+			SubdivData *subdiv, const int32_t p_level, const int num_channels);
 
 	void _create_subdivision_vertices(
 			SubdivData *subdiv, OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const bool face_varying_data);

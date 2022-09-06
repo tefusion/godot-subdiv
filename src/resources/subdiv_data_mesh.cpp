@@ -1,22 +1,8 @@
 #include "subdiv_data_mesh.hpp"
 #include "godot_cpp/classes/surface_tool.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-
-SubdivDataMesh::SubdivDataMesh() {
-}
-
-SubdivDataMesh::~SubdivDataMesh() {
-}
-
-void SubdivDataMesh::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("add_surface"), &SubdivDataMesh::add_surface);
-
-	ClassDB::bind_method(D_METHOD("_set_data", "data"), &SubdivDataMesh::_set_data);
-	ClassDB::bind_method(D_METHOD("_get_data"), &SubdivDataMesh::_get_data);
-
-	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
-	//ClassDB::bind_method(D_METHOD("generate_trimesh"), &SubdivDataMesh::generate_trimesh, DEFVAL(Ref<ArrayMesh>()));
-}
+#include "subdiv_types/subdivision_mesh.hpp"
+#include "subdivision_server.hpp"
 
 void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name) {
 	// ERR_FAIL_COND(p_arrays.size() != Mesh::ARRAY_MAX);
@@ -159,8 +145,83 @@ void SubdivDataMesh::clear() {
 	//blend_shapes.clear();
 }
 
-int32_t SubdivDataMesh::get_surface_count() {
+RID SubdivDataMesh::get_rid() const {
+	if (subdiv_mesh) {
+		return subdiv_mesh->get_rid();
+	} else {
+		return RID();
+	}
+}
+
+bool SubdivDataMesh::is_valid() const {
+	return valid;
+}
+
+void SubdivDataMesh::set_valid() {
+	valid = true;
+	_update_subdiv();
+}
+
+int64_t SubdivDataMesh::_get_surface_count() const {
 	return surfaces.size();
+}
+
+int64_t SubdivDataMesh::_surface_get_array_len(int64_t index) const {
+	ERR_FAIL_INDEX_V(index, surfaces.size(), -1);
+	const PackedVector3Array &v_array = surfaces[index].arrays[SubdivDataMesh::ARRAY_VERTEX];
+	return v_array.size();
+}
+int64_t SubdivDataMesh::_surface_get_array_index_len(int64_t index) const {
+	ERR_FAIL_INDEX_V(index, surfaces.size(), -1);
+	const PackedInt32Array &index_array = surfaces[index].arrays[SubdivDataMesh::ARRAY_INDEX];
+	return index_array.size();
+}
+Array SubdivDataMesh::_surface_get_arrays(int64_t index) const {
+	ERR_FAIL_INDEX_V(index, surfaces.size(), Array());
+	return surfaces[index].arrays;
+}
+Array SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t index) const {
+	//TODO:
+	return Array();
+}
+Dictionary SubdivDataMesh::_surface_get_lods(int64_t index) const {
+	//TODO:
+	return Dictionary();
+}
+
+int64_t SubdivDataMesh::_surface_get_format(int64_t index) const {
+	//TODO:
+	return 1;
+}
+
+int64_t SubdivDataMesh::_surface_get_primitive_type(int64_t index) const {
+	return Mesh::PRIMITIVE_TRIANGLES;
+}
+
+void SubdivDataMesh::_surface_set_material(int64_t index, const Ref<Material> &material) {
+	ERR_FAIL_INDEX(index, surfaces.size());
+	surfaces.write[index].material = material;
+}
+Ref<Material> SubdivDataMesh::_surface_get_material(int64_t index) const {
+	ERR_FAIL_INDEX_V(index, surfaces.size(), Ref<Material>());
+	Ref<Material> a = surfaces[index].material;
+	return surfaces[index].material;
+}
+
+int64_t SubdivDataMesh::_get_blend_shape_count() const {
+	//TODO:
+	return 0;
+}
+StringName SubdivDataMesh::_get_blend_shape_name(int64_t index) const {
+	//TODO:
+	return StringName();
+}
+void SubdivDataMesh::_set_blend_shape_name(int64_t index, const StringName &name) {
+	//TODO:
+}
+AABB SubdivDataMesh::_get_aabb() const {
+	//TODO:
+	return AABB();
 }
 
 String SubdivDataMesh::surface_get_name(int p_surface) const {
@@ -172,19 +233,54 @@ void SubdivDataMesh::surface_set_name(int p_surface, const String &p_name) {
 	surfaces.write[p_surface].name = p_name;
 }
 
-Ref<Material> SubdivDataMesh::surface_get_material(int p_surface) const {
-	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), Ref<Material>());
-	return surfaces[p_surface].material;
-}
-
-void SubdivDataMesh::surface_set_material(int p_surface, const Ref<Material> &p_material) {
-	ERR_FAIL_INDEX(p_surface, surfaces.size());
-	surfaces.write[p_surface].material = p_material;
-}
-
 //return vertex array length of surface
 int SubdivDataMesh::surface_get_length(int p_surface) {
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), -1);
 	const PackedVector3Array &vertex_array = surfaces[p_surface].arrays[SubdivDataMesh::ARRAY_VERTEX];
 	return vertex_array.size();
+}
+
+void SubdivDataMesh::_update_subdiv() {
+	if (!subdiv_mesh) {
+		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
+		ERR_FAIL_COND(!subdivision_server);
+		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(this, subdiv_level));
+	} else {
+		subdiv_mesh->update_subdivision(this, subdiv_level);
+	}
+}
+
+void SubdivDataMesh::set_subdiv_level(int p_level) {
+	ERR_FAIL_COND(p_level < 0);
+	subdiv_level = p_level;
+	_update_subdiv();
+}
+
+int32_t SubdivDataMesh::get_subdiv_level() const {
+	return subdiv_level;
+}
+
+SubdivDataMesh::SubdivDataMesh() {
+	subdiv_mesh = NULL;
+}
+
+SubdivDataMesh::~SubdivDataMesh() {
+	if (subdiv_mesh) {
+		SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
+	}
+	subdiv_mesh = NULL;
+}
+
+void SubdivDataMesh::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("add_surface"), &SubdivDataMesh::add_surface);
+
+	ClassDB::bind_method(D_METHOD("_set_data", "data"), &SubdivDataMesh::_set_data);
+	ClassDB::bind_method(D_METHOD("_get_data"), &SubdivDataMesh::_get_data);
+
+	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
+	//ClassDB::bind_method(D_METHOD("generate_trimesh"), &SubdivDataMesh::generate_trimesh, DEFVAL(Ref<ArrayMesh>()));
+
+	//virtuals of mesh
+	SubdivDataMesh::register_virtuals<Mesh>();
+	//ClassDB::bind_virtual_method("_get_surface_count", &SubdivDataMesh::_get_surface_count, &Mesh::register_virtuals())
 }

@@ -110,7 +110,7 @@ Descriptor SubdivisionMesh::_create_topology_descriptor(
 }
 
 Far::TopologyRefiner *SubdivisionMesh::_create_topology_refiner(
-		SubdivData *subdiv, int32_t p_level, const int num_channels) {
+		SubdivData *subdiv, const int32_t p_level, const int num_channels) {
 	//create descriptor,
 	//FIXME: some values have to be declared within function here, memnew also didn't work
 	Vector<int> subdiv_face_vertex_count;
@@ -119,7 +119,7 @@ Far::TopologyRefiner *SubdivisionMesh::_create_topology_refiner(
 	Descriptor desc = _create_topology_descriptor(*subdiv, num_channels);
 	desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
 	Descriptor::FVarChannel channels[num_channels];
-	if (num_channels) {
+	if (num_channels > 0) {
 		channels[Channels::UV].numValues = subdiv->uv_count;
 		channels[Channels::UV].valueIndices = subdiv->uv_index_array.ptr();
 		desc.numFVarChannels = num_channels;
@@ -229,7 +229,7 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 	if (p_level == 0) {
 		for (int32_t surface_index = 0; surface_index < p_mesh->get_surface_count(); ++surface_index) {
 			rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, p_mesh->generate_trimesh_arrays(surface_index), Array(), Dictionary(), surface_format);
-			Ref<Material> material = p_mesh->surface_get_material(surface_index);
+			Ref<Material> material = p_mesh->_surface_get_material(surface_index); //TODO: currently calls function directly cause virtual surface_get_material still gives corrupt data?
 			rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
 		}
 		current_level = p_level;
@@ -299,7 +299,7 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 		//auto duration = duration_cast<milliseconds>(stop - start);
 		//UtilityFunctions::print("Time taken for subdivsion: ", duration.count(), "ms");
 
-		Ref<Material> material = p_mesh->surface_get_material(surface_index);
+		Ref<Material> material = p_mesh->_surface_get_material(surface_index);
 		rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
 		current_level = p_level;
 	}

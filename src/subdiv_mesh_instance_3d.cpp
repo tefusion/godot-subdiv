@@ -13,7 +13,10 @@ void SubdivMeshInstance3D::set_mesh(const Ref<SubdivDataMesh> &p_mesh) {
 	mesh = p_mesh;
 	//_initialize_helper_mesh();
 	if (is_inside_tree()) {
-		_update_subdiv();
+		mesh->set_valid();
+		set_base(mesh->get_rid());
+		update_gizmos();
+		notify_property_list_changed();
 	}
 }
 
@@ -69,53 +72,29 @@ NodePath SubdivMeshInstance3D::get_skeleton_path() const {
 }
 
 void SubdivMeshInstance3D::_update_subdiv() {
-	if (mesh.is_null()) {
-		if (subdiv_mesh) {
-			SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
-			ERR_FAIL_COND(!subdivision_server);
-			subdivision_server->destroy_subdivision_mesh(subdiv_mesh);
-			subdiv_mesh = NULL;
-		}
-		return;
-	}
+	// if (mesh.is_null()) {
+	// 	if (subdiv_mesh) {
+	// 		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
+	// 		ERR_FAIL_COND(!subdivision_server);
+	// 		subdivision_server->destroy_subdivision_mesh(subdiv_mesh);
+	// 		subdiv_mesh = NULL;
+	// 	}
+	// 	return;
+	// }
 
-	if (!subdiv_mesh) {
-		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
-		ERR_FAIL_COND(!subdivision_server);
-		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(mesh, subdiv_level));
-	} else {
-		if (mesh.is_null()) {
-			if (subdiv_mesh) {
-				SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
-				ERR_FAIL_COND(!subdivision_server);
-				subdivision_server->destroy_subdivision_mesh(subdiv_mesh);
-				subdiv_mesh = NULL;
-			}
-			return;
-		}
+	// if (skin_ref.is_valid()) {
+	// 	// Intialize from current skeleton pose
+	// 	_update_skinning();
+	// }
 
-		if (!subdiv_mesh) {
-			SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
-			ERR_FAIL_COND(!subdivision_server);
-			subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(mesh, subdiv_level));
-		} else {
-			subdiv_mesh->update_subdivision(mesh, subdiv_level);
-		}
-	}
-
-	if (skin_ref.is_valid()) {
-		// Intialize from current skeleton pose
-		_update_skinning();
-	}
-	set_base(subdiv_mesh->get_rid());
-	update_gizmos();
-	notify_property_list_changed();
+	// update_gizmos();
+	// notify_property_list_changed();
 }
 
 void SubdivMeshInstance3D::set_subdiv_level(int p_level) {
 	ERR_FAIL_COND(p_level < 0);
 	subdiv_level = p_level;
-	_update_subdiv();
+	mesh->set_subdiv_level(p_level);
 }
 int32_t SubdivMeshInstance3D::get_subdiv_level() {
 	return subdiv_level;
@@ -125,7 +104,10 @@ void SubdivMeshInstance3D::_notification(int p_what) {
 	switch (p_what) {
 		case 10: { //Node::NOTIFICATION_ENTER_TREE{ //FIXME: no access to enum
 			_resolve_skeleton_path();
-			_update_subdiv();
+			mesh->set_subdiv_level(subdiv_level);
+			set_base(mesh->get_rid());
+			update_gizmos();
+			notify_property_list_changed();
 		} break;
 	}
 }
@@ -264,6 +246,5 @@ SubdivMeshInstance3D::SubdivMeshInstance3D() {
 }
 
 SubdivMeshInstance3D::~SubdivMeshInstance3D() {
-	SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
 	subdiv_mesh = NULL;
 }

@@ -1,5 +1,5 @@
 #ifndef SUBDIV_MESH_INSTANCE_3D_H
-#define SUBDIV_MESH_INSTANCE_3D_H
+#define QUAD_MESH_INSTANCE_3D_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
