@@ -15,4 +15,4 @@ config/features=PackedStringArray("4.0", "Vulkan Clustered")
 
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/godot_subdiv/plugin.cfg")

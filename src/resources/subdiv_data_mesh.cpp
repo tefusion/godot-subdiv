@@ -1,4 +1,5 @@
 #include "subdiv_data_mesh.hpp"
+#include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/classes/surface_tool.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "subdiv_types/subdivision_mesh.hpp"
@@ -27,8 +28,8 @@ void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_sha
 }
 
 //generates Mesh arrays for add_surface_call
-Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) {
-	const Array &quad_arrays = surface_get_arrays(surface_index);
+Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) const {
+	const Array &quad_arrays = surface_get_data_arrays(surface_index);
 	ERR_FAIL_COND_V_MSG(quad_arrays.size() != SubdivDataMesh::ARRAY_MAX, Array(), "Surface arrays of quad mesh corrupted, try reimporting.");
 
 	const PackedVector3Array &quad_vertex_array = quad_arrays[SubdivDataMesh::ARRAY_VERTEX];
@@ -70,7 +71,8 @@ Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) {
 	return tri_arrays;
 }
 
-Array SubdivDataMesh::surface_get_arrays(int p_index) const {
+//this method gives the actual stored vertices
+Array SubdivDataMesh::surface_get_data_arrays(int p_index) const {
 	ERR_FAIL_COND_V_MSG(p_index >= surfaces.size(), Array(), "Surface index above surface count.");
 	return surfaces[p_index].arrays;
 }
@@ -145,40 +147,25 @@ void SubdivDataMesh::clear() {
 	//blend_shapes.clear();
 }
 
-RID SubdivDataMesh::get_rid() const {
-	if (subdiv_mesh) {
-		return subdiv_mesh->get_rid();
-	} else {
-		return RID();
-	}
-}
-
-bool SubdivDataMesh::is_valid() const {
-	return valid;
-}
-
-void SubdivDataMesh::set_valid() {
-	valid = true;
-	_update_subdiv();
-}
-
 int64_t SubdivDataMesh::_get_surface_count() const {
 	return surfaces.size();
 }
 
 int64_t SubdivDataMesh::_surface_get_array_len(int64_t index) const {
-	ERR_FAIL_INDEX_V(index, surfaces.size(), -1);
-	const PackedVector3Array &v_array = surfaces[index].arrays[SubdivDataMesh::ARRAY_VERTEX];
-	return v_array.size();
+	ERR_FAIL_INDEX_V(index, surfaces.size(), 0);
+	PackedInt32Array index_array = surfaces[index].arrays[Mesh::ARRAY_INDEX];
+	return index_array.size() / 4 * 6;
 }
 int64_t SubdivDataMesh::_surface_get_array_index_len(int64_t index) const {
-	ERR_FAIL_INDEX_V(index, surfaces.size(), -1);
-	const PackedInt32Array &index_array = surfaces[index].arrays[SubdivDataMesh::ARRAY_INDEX];
-	return index_array.size();
+	ERR_FAIL_INDEX_V(index, surfaces.size(), 0);
+	PackedInt32Array index_array = surfaces[index].arrays[Mesh::ARRAY_INDEX];
+	return index_array.size() / 4 * 6;
 }
+
+//this method gives the arrays of the subdivision mesh from the rendering server
 Array SubdivDataMesh::_surface_get_arrays(int64_t index) const {
-	ERR_FAIL_INDEX_V(index, surfaces.size(), Array());
-	return surfaces[index].arrays;
+	ERR_FAIL_INDEX_V(index, get_surface_count(), Array());
+	return generate_trimesh_arrays(index);
 }
 Array SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t index) const {
 	//TODO:
@@ -240,35 +227,10 @@ int SubdivDataMesh::surface_get_length(int p_surface) {
 	return vertex_array.size();
 }
 
-void SubdivDataMesh::_update_subdiv() {
-	if (!subdiv_mesh) {
-		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
-		ERR_FAIL_COND(!subdivision_server);
-		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(this, subdiv_level));
-	} else {
-		subdiv_mesh->update_subdivision(this, subdiv_level);
-	}
-}
-
-void SubdivDataMesh::set_subdiv_level(int p_level) {
-	ERR_FAIL_COND(p_level < 0);
-	subdiv_level = p_level;
-	_update_subdiv();
-}
-
-int32_t SubdivDataMesh::get_subdiv_level() const {
-	return subdiv_level;
-}
-
 SubdivDataMesh::SubdivDataMesh() {
-	subdiv_mesh = NULL;
 }
 
 SubdivDataMesh::~SubdivDataMesh() {
-	if (subdiv_mesh) {
-		SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
-	}
-	subdiv_mesh = NULL;
 }
 
 void SubdivDataMesh::_bind_methods() {
@@ -282,5 +244,4 @@ void SubdivDataMesh::_bind_methods() {
 
 	//virtuals of mesh
 	SubdivDataMesh::register_virtuals<Mesh>();
-	//ClassDB::bind_virtual_method("_get_surface_count", &SubdivDataMesh::_get_surface_count, &Mesh::register_virtuals())
 }

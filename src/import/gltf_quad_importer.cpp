@@ -149,7 +149,9 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
 	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
 	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
-	quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+	if (!p_meshinstance->get_skin().is_null()) {
+		quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+	}
 
 	StringName quad_mesh_instance_name = p_meshinstance->get_name();
 	quad_mesh_instance->set_mesh(quad_mesh);
@@ -180,7 +182,9 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
 	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
 	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
-	quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+	if (!p_meshinstance->get_skin().is_null()) {
+		quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+	}
 
 	StringName quad_mesh_instance_name = p_meshinstance->get_name();
 	quad_mesh_instance->set_mesh(quad_mesh);

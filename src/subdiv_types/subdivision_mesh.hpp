@@ -21,12 +21,15 @@ class SubdivisionMesh : public RefCounted {
 	GDCLASS(SubdivisionMesh, RefCounted);
 	RID source_mesh; //ImporterQuadMesh
 	RID subdiv_mesh; //generated triangle mesh
-	int subdiv_vertex_count = 0;
+
 	int current_level = -1;
 
 	// OpenSubdiv::Far::TopologyRefiner *refiner;
 protected:
 	static void _bind_methods();
+
+	Vector<int64_t> subdiv_vertex_count; //variables used for compatibility with mesh
+	Vector<int64_t> subdiv_index_count;
 
 private:
 	struct SubdivData {
@@ -71,6 +74,10 @@ public:
 
 	void update_subdivision(Ref<SubdivDataMesh> p_mesh, int p_level);
 	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array);
+	void clear();
+
+	int64_t surface_get_vertex_array_size(int p_surface) const;
+	int64_t surface_get_index_array_size(int p_surface) const;
 };
 
 #endif

@@ -214,6 +214,9 @@ void SubdivisionMesh::_create_subdivision_faces(const SubdivData &subdiv, Far::T
 void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_level) {
 	//auto start = high_resolution_clock::now(); //time measuring code
 	RenderingServer::get_singleton()->mesh_clear(subdiv_mesh);
+	subdiv_vertex_count.clear();
+	subdiv_index_count.clear();
+
 	ERR_FAIL_COND(p_mesh.is_null());
 	ERR_FAIL_COND(p_level < 0);
 	source_mesh = p_mesh->get_rid();
@@ -228,9 +231,15 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 
 	if (p_level == 0) {
 		for (int32_t surface_index = 0; surface_index < p_mesh->get_surface_count(); ++surface_index) {
-			rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, p_mesh->generate_trimesh_arrays(surface_index), Array(), Dictionary(), surface_format);
+			Array triangle_arrays = p_mesh->generate_trimesh_arrays(surface_index);
+			rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, triangle_arrays, Array(), Dictionary(), surface_format);
 			Ref<Material> material = p_mesh->_surface_get_material(surface_index); //TODO: currently calls function directly cause virtual surface_get_material still gives corrupt data?
 			rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
+
+			const PackedVector3Array &vertex_array = triangle_arrays[Mesh::ARRAY_VERTEX];
+			const PackedInt32Array &index_array = triangle_arrays[Mesh::ARRAY_INDEX];
+			subdiv_vertex_count.append(vertex_array.size());
+			subdiv_index_count.append(index_array.size());
 		}
 		current_level = p_level;
 		return;
@@ -239,7 +248,7 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 	int32_t surface_count = p_mesh->get_surface_count();
 
 	for (int32_t surface_index = 0; surface_index < surface_count; ++surface_index) {
-		Array v_arrays = p_mesh->surface_get_arrays(surface_index);
+		Array v_arrays = p_mesh->surface_get_data_arrays(surface_index);
 		SubdivData subdiv = SubdivData(v_arrays);
 
 		const int num_channels = 1;
@@ -293,11 +302,10 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 		subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
 		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
 
-		// TODO: use mesh_add_surface to share vertex array
+		subdiv_vertex_count.append(vertex_array.size());
+		subdiv_index_count.append(index_array.size());
+
 		rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, subdiv_triangle_arrays, Array(), Dictionary(), surface_format);
-		//auto stop = high_resolution_clock::now();
-		//auto duration = duration_cast<milliseconds>(stop - start);
-		//UtilityFunctions::print("Time taken for subdivsion: ", duration.count(), "ms");
 
 		Ref<Material> material = p_mesh->_surface_get_material(surface_index);
 		rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
@@ -385,16 +393,36 @@ PackedVector3Array SubdivisionMesh::_calculate_smooth_normals(const PackedVector
 	return normals;
 }
 
+void SubdivisionMesh::clear() {
+	RenderingServer::get_singleton()->mesh_clear(subdiv_mesh);
+	subdiv_vertex_count.clear();
+	subdiv_index_count.clear();
+}
+
+int64_t SubdivisionMesh::surface_get_vertex_array_size(int p_surface) const {
+	ERR_FAIL_INDEX_V(p_surface, subdiv_vertex_count.size(), 0);
+	return subdiv_vertex_count[p_surface];
+}
+
+int64_t SubdivisionMesh::surface_get_index_array_size(int p_surface) const {
+	ERR_FAIL_INDEX_V(p_surface, subdiv_index_count.size(), 0);
+	return subdiv_index_count[p_surface];
+}
+
 void SubdivisionMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rid"), &SubdivisionMesh::get_rid);
 	ClassDB::bind_method(D_METHOD("update_subdivision"), &SubdivisionMesh::update_subdivision);
 }
 
 SubdivisionMesh::SubdivisionMesh() {
+	current_level = 0;
 	subdiv_mesh = RenderingServer::get_singleton()->mesh_create();
 }
 
 SubdivisionMesh::~SubdivisionMesh() {
-	RenderingServer::get_singleton()->free_rid(subdiv_mesh);
+	if (subdiv_mesh.is_valid()) {
+		RenderingServer::get_singleton()->free_rid(subdiv_mesh);
+	}
+
 	subdiv_mesh = RID();
 }
