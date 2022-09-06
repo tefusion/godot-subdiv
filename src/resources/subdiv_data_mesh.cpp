@@ -1,24 +1,24 @@
-#include "importer_quad_mesh.hpp"
+#include "subdiv_data_mesh.hpp"
 #include "godot_cpp/classes/surface_tool.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 
-ImporterQuadMesh::ImporterQuadMesh() {
+SubdivDataMesh::SubdivDataMesh() {
 }
 
-ImporterQuadMesh::~ImporterQuadMesh() {
+SubdivDataMesh::~SubdivDataMesh() {
 }
 
-void ImporterQuadMesh::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("add_surface"), &ImporterQuadMesh::add_surface);
+void SubdivDataMesh::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("add_surface"), &SubdivDataMesh::add_surface);
 
-	ClassDB::bind_method(D_METHOD("_set_data", "data"), &ImporterQuadMesh::_set_data);
-	ClassDB::bind_method(D_METHOD("_get_data"), &ImporterQuadMesh::_get_data);
+	ClassDB::bind_method(D_METHOD("_set_data", "data"), &SubdivDataMesh::_set_data);
+	ClassDB::bind_method(D_METHOD("_get_data"), &SubdivDataMesh::_get_data);
 
 	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
-	//ClassDB::bind_method(D_METHOD("generate_trimesh"), &ImporterQuadMesh::generate_trimesh, DEFVAL(Ref<ArrayMesh>()));
+	//ClassDB::bind_method(D_METHOD("generate_trimesh"), &SubdivDataMesh::generate_trimesh, DEFVAL(Ref<ArrayMesh>()));
 }
 
-void ImporterQuadMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name) {
+void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name) {
 	// ERR_FAIL_COND(p_arrays.size() != Mesh::ARRAY_MAX);
 	Surface s;
 	s.arrays = p_arrays;
@@ -41,15 +41,15 @@ void ImporterQuadMesh::add_surface(const Array &p_arrays, const Array &p_blend_s
 }
 
 //generates Mesh arrays for add_surface_call
-Array ImporterQuadMesh::generate_trimesh_arrays(int surface_index) {
+Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) {
 	const Array &quad_arrays = surface_get_arrays(surface_index);
-	ERR_FAIL_COND_V_MSG(quad_arrays.size() != ImporterQuadMesh::ARRAY_MAX, Array(), "Surface arrays of quad mesh corrupted, try reimporting.");
+	ERR_FAIL_COND_V_MSG(quad_arrays.size() != SubdivDataMesh::ARRAY_MAX, Array(), "Surface arrays of quad mesh corrupted, try reimporting.");
 
-	const PackedVector3Array &quad_vertex_array = quad_arrays[ImporterQuadMesh::ARRAY_VERTEX];
-	const PackedInt32Array &quad_index_array = quad_arrays[ImporterQuadMesh::ARRAY_INDEX];
-	const PackedVector3Array &quad_normal_array = quad_arrays[ImporterQuadMesh::ARRAY_NORMAL];
-	const PackedInt32Array &quad_uv_index_array = quad_arrays[ImporterQuadMesh::ARRAY_UV_INDEX];
-	const PackedVector2Array &quad_uv_array = quad_arrays[ImporterQuadMesh::ARRAY_TEX_UV];
+	const PackedVector3Array &quad_vertex_array = quad_arrays[SubdivDataMesh::ARRAY_VERTEX];
+	const PackedInt32Array &quad_index_array = quad_arrays[SubdivDataMesh::ARRAY_INDEX];
+	const PackedVector3Array &quad_normal_array = quad_arrays[SubdivDataMesh::ARRAY_NORMAL];
+	const PackedInt32Array &quad_uv_index_array = quad_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
+	const PackedVector2Array &quad_uv_array = quad_arrays[SubdivDataMesh::ARRAY_TEX_UV];
 	//generate tri index array and new vertex array
 	PackedVector3Array tri_vertex_array;
 	PackedVector3Array tri_normal_array;
@@ -84,12 +84,12 @@ Array ImporterQuadMesh::generate_trimesh_arrays(int surface_index) {
 	return tri_arrays;
 }
 
-Array ImporterQuadMesh::surface_get_arrays(int p_index) const {
+Array SubdivDataMesh::surface_get_arrays(int p_index) const {
 	ERR_FAIL_COND_V_MSG(p_index >= surfaces.size(), Array(), "Surface index above surface count.");
 	return surfaces[p_index].arrays;
 }
 
-void ImporterQuadMesh::_set_data(const Dictionary &p_data) {
+void SubdivDataMesh::_set_data(const Dictionary &p_data) {
 	clear();
 	// if (p_data.has("blend_shape_names")) {
 	// 	blend_shapes = p_data["blend_shape_names"];
@@ -117,7 +117,7 @@ void ImporterQuadMesh::_set_data(const Dictionary &p_data) {
 		}
 	}
 }
-Dictionary ImporterQuadMesh::_get_data() const {
+Dictionary SubdivDataMesh::_get_data() const {
 	Dictionary data;
 	// if (blend_shapes.size()) {
 	// 	data["blend_shape_names"] = blend_shapes;
@@ -154,37 +154,37 @@ Dictionary ImporterQuadMesh::_get_data() const {
 	return data;
 }
 
-void ImporterQuadMesh::clear() {
+void SubdivDataMesh::clear() {
 	surfaces.clear();
 	//blend_shapes.clear();
 }
 
-int32_t ImporterQuadMesh::get_surface_count() {
+int32_t SubdivDataMesh::get_surface_count() {
 	return surfaces.size();
 }
 
-String ImporterQuadMesh::surface_get_name(int p_surface) const {
+String SubdivDataMesh::surface_get_name(int p_surface) const {
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), String());
 	return surfaces[p_surface].name;
 }
-void ImporterQuadMesh::surface_set_name(int p_surface, const String &p_name) {
+void SubdivDataMesh::surface_set_name(int p_surface, const String &p_name) {
 	ERR_FAIL_INDEX(p_surface, surfaces.size());
 	surfaces.write[p_surface].name = p_name;
 }
 
-Ref<Material> ImporterQuadMesh::surface_get_material(int p_surface) const {
+Ref<Material> SubdivDataMesh::surface_get_material(int p_surface) const {
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), Ref<Material>());
 	return surfaces[p_surface].material;
 }
 
-void ImporterQuadMesh::surface_set_material(int p_surface, const Ref<Material> &p_material) {
+void SubdivDataMesh::surface_set_material(int p_surface, const Ref<Material> &p_material) {
 	ERR_FAIL_INDEX(p_surface, surfaces.size());
 	surfaces.write[p_surface].material = p_material;
 }
 
 //return vertex array length of surface
-int ImporterQuadMesh::surface_get_length(int p_surface) {
+int SubdivDataMesh::surface_get_length(int p_surface) {
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), -1);
-	const PackedVector3Array &vertex_array = surfaces[p_surface].arrays[ImporterQuadMesh::ARRAY_VERTEX];
+	const PackedVector3Array &vertex_array = surfaces[p_surface].arrays[SubdivDataMesh::ARRAY_VERTEX];
 	return vertex_array.size();
 }

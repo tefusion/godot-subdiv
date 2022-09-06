@@ -1,5 +1,5 @@
-#ifndef QUAD_MESH_INSTANCE_3D_H
-#define QUAD_MESH_INSTANCE_3D_H
+#ifndef SUBDIV_MESH_INSTANCE_3D_H
+#define SUBDIV_MESH_INSTANCE_3D_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -8,14 +8,14 @@
 #include "godot_cpp/classes/immediate_mesh.hpp"
 #include "godot_cpp/classes/skin.hpp"
 #include "godot_cpp/classes/skin_reference.hpp"
-#include "importer_quad_mesh.hpp"
-#include "subdivision_mesh.hpp"
+#include "resources/subdiv_data_mesh.hpp"
+#include "subdiv_types/subdivision_mesh.hpp"
 
-class QuadMeshInstance3D : public GeometryInstance3D {
-	GDCLASS(QuadMeshInstance3D, GeometryInstance3D)
+class SubdivMeshInstance3D : public GeometryInstance3D {
+	GDCLASS(SubdivMeshInstance3D, GeometryInstance3D)
 
 protected:
-	Ref<ImporterQuadMesh> mesh;
+	Ref<SubdivDataMesh> mesh;
 	Ref<Skin> skin;
 	Ref<Skin> skin_internal;
 	Ref<SkinReference> skin_ref;
@@ -29,8 +29,8 @@ protected:
 	void _notification(int p_what);
 
 public:
-	void set_mesh(const Ref<ImporterQuadMesh> &p_mesh);
-	Ref<ImporterQuadMesh> get_mesh() const;
+	void set_mesh(const Ref<SubdivDataMesh> &p_mesh);
+	Ref<SubdivDataMesh> get_mesh() const;
 
 	void set_skin(const Ref<Skin> &p_skin);
 	Ref<Skin> get_skin() const;
@@ -44,8 +44,8 @@ public:
 	void set_subdiv_level(int p_level);
 	int32_t get_subdiv_level();
 
-	QuadMeshInstance3D();
-	~QuadMeshInstance3D();
+	SubdivMeshInstance3D();
+	~SubdivMeshInstance3D();
 
 protected:
 	SubdivisionMesh *subdiv_mesh;

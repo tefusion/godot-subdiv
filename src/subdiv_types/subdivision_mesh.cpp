@@ -23,13 +23,13 @@ using namespace OpenSubdiv;
 typedef Far::TopologyDescriptor Descriptor;
 
 SubdivisionMesh::SubdivData::SubdivData(const Array &p_mesh_arrays) {
-	vertex_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_VERTEX];
-	normal_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_NORMAL];
-	index_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_INDEX];
-	uv_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_TEX_UV];
-	uv_index_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_UV_INDEX];
-	bones_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_BONES];
-	weights_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_WEIGHTS];
+	vertex_array = p_mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
+	normal_array = p_mesh_arrays[SubdivDataMesh::ARRAY_NORMAL];
+	index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_INDEX];
+	uv_array = p_mesh_arrays[SubdivDataMesh::ARRAY_TEX_UV];
+	uv_index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
+	bones_array = p_mesh_arrays[SubdivDataMesh::ARRAY_BONES];
+	weights_array = p_mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS];
 
 	index_count = index_array.size();
 	face_count = index_array.size() / 4;
@@ -203,15 +203,15 @@ void SubdivisionMesh::_create_subdivision_faces(const SubdivData &subdiv, Far::T
 			}
 		}
 	}
-	subdiv_quad_arrays[ImporterQuadMesh::ARRAY_INDEX] = index_array;
-	subdiv_quad_arrays[ImporterQuadMesh::ARRAY_VERTEX] = subdiv.vertex_array;
+	subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX] = index_array;
+	subdiv_quad_arrays[SubdivDataMesh::ARRAY_VERTEX] = subdiv.vertex_array;
 	if (face_varying_data) {
-		subdiv_quad_arrays[ImporterQuadMesh::ARRAY_UV_INDEX] = uv_index_array;
-		subdiv_quad_arrays[ImporterQuadMesh::ARRAY_TEX_UV] = subdiv.uv_array;
+		subdiv_quad_arrays[SubdivDataMesh::ARRAY_UV_INDEX] = uv_index_array;
+		subdiv_quad_arrays[SubdivDataMesh::ARRAY_TEX_UV] = subdiv.uv_array;
 	}
 }
 
-void SubdivisionMesh::update_subdivision(Ref<ImporterQuadMesh> p_mesh, int32_t p_level) {
+void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_level) {
 	//auto start = high_resolution_clock::now(); //time measuring code
 	RenderingServer::get_singleton()->mesh_clear(subdiv_mesh);
 	ERR_FAIL_COND(p_mesh.is_null());
@@ -251,11 +251,11 @@ void SubdivisionMesh::update_subdivision(Ref<ImporterQuadMesh> p_mesh, int32_t p
 		_create_subdivision_vertices(&subdiv, refiner, p_level, true);
 
 		Array subdiv_quad_arrays;
-		subdiv_quad_arrays.resize(ImporterQuadMesh::ARRAY_MAX);
+		subdiv_quad_arrays.resize(SubdivDataMesh::ARRAY_MAX);
 		_create_subdivision_faces(subdiv, refiner, p_level, true, subdiv_quad_arrays);
-		subdiv.normal_array = _calculate_smooth_normals(subdiv.vertex_array, subdiv_quad_arrays[ImporterQuadMesh::ARRAY_INDEX]);
-		const PackedInt32Array &index_array_out = subdiv_quad_arrays[ImporterQuadMesh::ARRAY_INDEX];
-		const PackedInt32Array &uv_index_array_out = subdiv_quad_arrays[ImporterQuadMesh::ARRAY_UV_INDEX];
+		subdiv.normal_array = _calculate_smooth_normals(subdiv.vertex_array, subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX]);
+		const PackedInt32Array &index_array_out = subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX];
+		const PackedInt32Array &uv_index_array_out = subdiv_quad_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
 
 		//free memory
 		delete refiner;
@@ -336,16 +336,16 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
 	_create_subdivision_vertices(&subdiv, refiner, p_level, false);
 	Array subdiv_quad_arrays;
-	subdiv_quad_arrays.resize(ImporterQuadMesh::ARRAY_MAX);
+	subdiv_quad_arrays.resize(SubdivDataMesh::ARRAY_MAX);
 	_create_subdivision_faces(subdiv, refiner, p_level, false, subdiv_quad_arrays);
 
 	//TODO: calculate normal value you can put into the buffer (size only of int)
-	//subdiv.normal_array = _calculate_smooth_normals(subdiv.vertex_array, subdiv_quad_arrays[ImporterQuadMesh::ARRAY_INDEX]);
+	//subdiv.normal_array = _calculate_smooth_normals(subdiv.vertex_array, subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX]);
 
 	//free memory
 	delete refiner;
 
-	const PackedInt32Array &index_array_out = subdiv_quad_arrays[ImporterQuadMesh::ARRAY_INDEX];
+	const PackedInt32Array &index_array_out = subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX];
 
 	// update vertices
 	PackedByteArray vertex_buffer = rendering_server->mesh_get_surface(subdiv_mesh, p_surface)["vertex_data"];

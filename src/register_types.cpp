@@ -8,9 +8,9 @@
 #include "godot_cpp/godot.hpp"
 
 #include "import/gltf_quad_importer.hpp"
-#include "importer_quad_mesh.hpp"
-#include "quad_mesh_instance_3d.hpp"
-#include "subdivision_mesh.hpp"
+#include "resources/subdiv_data_mesh.hpp"
+#include "subdiv_mesh_instance_3d.hpp"
+#include "subdiv_types/subdivision_mesh.hpp"
 #include "subdivision_server.hpp"
 
 using namespace godot;
@@ -20,8 +20,8 @@ static SubdivisionServer *_subdivision_server;
 void gdextension_initialize(ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		ClassDB::register_class<SubdivisionServer>();
-		ClassDB::register_class<ImporterQuadMesh>();
-		ClassDB::register_class<QuadMeshInstance3D>();
+		ClassDB::register_class<SubdivDataMesh>();
+		ClassDB::register_class<SubdivMeshInstance3D>();
 		ClassDB::register_class<SubdivisionMesh>();
 		ClassDB::register_class<GLTFQuadImporter>();
 		_subdivision_server = memnew(SubdivisionServer);

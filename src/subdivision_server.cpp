@@ -2,10 +2,10 @@
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/class_db.hpp"
-#include "subdivision_mesh.hpp"
+#include "subdiv_types/subdivision_mesh.hpp"
 
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "importer_quad_mesh.hpp"
+#include "resources/subdiv_data_mesh.hpp"
 
 using namespace godot;
 
@@ -29,7 +29,7 @@ void SubdivisionServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("destroy_subdivision_mesh"), &SubdivisionServer::destroy_subdivision_mesh);
 }
 
-SubdivisionMesh *SubdivisionServer::create_subdivision_mesh(const Ref<ImporterQuadMesh> &p_mesh, int32_t p_level) {
+SubdivisionMesh *SubdivisionServer::create_subdivision_mesh(const Ref<SubdivDataMesh> &p_mesh, int32_t p_level) {
 	SubdivisionMesh *subdiv_mesh = memnew(SubdivisionMesh);
 	subdiv_mesh->update_subdivision(p_mesh, p_level);
 

@@ -12,7 +12,7 @@
 #include "godot_cpp/templates/vector.hpp"
 
 #include "far/topologyDescriptor.h"
-#include "importer_quad_mesh.hpp"
+#include "resources/subdiv_data_mesh.hpp"
 
 using namespace godot;
 
@@ -69,7 +69,7 @@ public:
 
 	RID get_rid() const { return subdiv_mesh; }
 
-	void update_subdivision(Ref<ImporterQuadMesh> p_mesh, int p_level);
+	void update_subdivision(Ref<SubdivDataMesh> p_mesh, int p_level);
 	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array);
 };
 

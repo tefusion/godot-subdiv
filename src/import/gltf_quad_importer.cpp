@@ -2,7 +2,7 @@
 
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/hash_set.hpp"
-#include "quad_mesh_instance_3d.hpp"
+#include "subdiv_mesh_instance_3d.hpp"
 
 #include "godot_cpp/classes/array_mesh.hpp"
 #include "godot_cpp/classes/importer_mesh.hpp"
@@ -134,7 +134,7 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	ImporterQuadMesh *quad_mesh = memnew(ImporterQuadMesh);
+	SubdivDataMesh *quad_mesh = memnew(SubdivDataMesh);
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
@@ -146,7 +146,7 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->surface_get_material(surface_index), p_mesh->surface_get_name(surface_index));
 	}
 
-	QuadMeshInstance3D *quad_mesh_instance = memnew(QuadMeshInstance3D);
+	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
 	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
 	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
 	quad_mesh_instance->set_skin(p_meshinstance->get_skin());
@@ -165,7 +165,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	Ref<ImporterMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	ImporterQuadMesh *quad_mesh = memnew(ImporterQuadMesh);
+	SubdivDataMesh *quad_mesh = memnew(SubdivDataMesh);
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
@@ -177,7 +177,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index));
 	}
 
-	QuadMeshInstance3D *quad_mesh_instance = memnew(QuadMeshInstance3D);
+	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
 	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
 	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
 	quad_mesh_instance->set_skin(p_meshinstance->get_skin());
@@ -198,16 +198,16 @@ Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &sur
 	ERR_FAIL_COND_V(quad_surface.index_array.size() / 4 != surface.index_array.size() / 6, Array());
 
 	Array quad_surface_arrays;
-	quad_surface_arrays.resize(ImporterQuadMesh::ARRAY_MAX);
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_NORMAL] = quad_surface.normal_array;
+	quad_surface_arrays.resize(SubdivDataMesh::ARRAY_MAX);
+	quad_surface_arrays[SubdivDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
+	quad_surface_arrays[SubdivDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
 	// quad_surface_arrays[Mesh::ARRAY_TANGENT]
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_INDEX] = quad_surface.index_array;
+	quad_surface_arrays[SubdivDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
+	quad_surface_arrays[SubdivDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
+	quad_surface_arrays[SubdivDataMesh::ARRAY_INDEX] = quad_surface.index_array;
 
 	PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
-	quad_surface_arrays[ImporterQuadMesh::ARRAY_UV_INDEX] = uv_index_array;
+	quad_surface_arrays[SubdivDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
+	quad_surface_arrays[SubdivDataMesh::ARRAY_UV_INDEX] = uv_index_array;
 	return quad_surface_arrays;
 }

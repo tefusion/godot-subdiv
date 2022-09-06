@@ -10,7 +10,7 @@
 #include "godot_cpp/templates/vector.hpp"
 
 class SubdivisionMesh;
-class ImporterQuadMesh;
+class SubdivDataMesh;
 
 using namespace godot;
 class SubdivisionServer : public Object {
@@ -22,7 +22,7 @@ protected:
 
 public:
 	static SubdivisionServer *get_singleton();
-	SubdivisionMesh *create_subdivision_mesh(const Ref<ImporterQuadMesh> &p_mesh, int32_t p_level);
+	SubdivisionMesh *create_subdivision_mesh(const Ref<SubdivDataMesh> &p_mesh, int32_t p_level);
 	void destroy_subdivision_mesh(Object *p_mesh_subdivision);
 	SubdivisionServer();
 	~SubdivisionServer();

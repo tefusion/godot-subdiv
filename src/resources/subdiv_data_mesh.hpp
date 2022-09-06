@@ -1,5 +1,5 @@
-#ifndef IMPORTER_QUAD_MESH_H
-#define IMPORTER_QUAD_MESH_H
+#ifndef SUBDIV_DATA_MESH_H
+#define SUBDIV_DATA_MESH_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -12,8 +12,8 @@
 
 using namespace godot;
 
-class ImporterQuadMesh : public Resource {
-	GDCLASS(ImporterQuadMesh, Resource);
+class SubdivDataMesh : public Resource {
+	GDCLASS(SubdivDataMesh, Resource);
 
 	struct Surface {
 		Array arrays;
@@ -65,21 +65,21 @@ public:
 		godot::PackedFloat32Array bones_array;
 		godot::PackedFloat32Array weights_array;
 		QuadSurfaceData(Array p_mesh_arrays) {
-			vertex_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_VERTEX];
-			normal_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_NORMAL];
-			index_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_INDEX];
-			uv_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_TEX_UV];
-			uv_index_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_UV_INDEX];
-			if (p_mesh_arrays[ImporterQuadMesh::ARRAY_BONES])
-				bones_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_BONES];
+			vertex_array = p_mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
+			normal_array = p_mesh_arrays[SubdivDataMesh::ARRAY_NORMAL];
+			index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_INDEX];
+			uv_array = p_mesh_arrays[SubdivDataMesh::ARRAY_TEX_UV];
+			uv_index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
+			if (p_mesh_arrays[SubdivDataMesh::ARRAY_BONES])
+				bones_array = p_mesh_arrays[SubdivDataMesh::ARRAY_BONES];
 
-			if (p_mesh_arrays[ImporterQuadMesh::ARRAY_WEIGHTS])
-				weights_array = p_mesh_arrays[ImporterQuadMesh::ARRAY_WEIGHTS];
+			if (p_mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS])
+				weights_array = p_mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS];
 		}
 	};
 
-	ImporterQuadMesh();
-	~ImporterQuadMesh();
+	SubdivDataMesh();
+	~SubdivDataMesh();
 	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
 			const Ref<Material> &p_material, const String &p_name);
 	Array generate_trimesh_arrays(int surface_index);
