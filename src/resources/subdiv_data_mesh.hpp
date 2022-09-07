@@ -29,13 +29,11 @@ class SubdivDataMesh : public Mesh {
 	int64_t _get_blend_shape_count() const override;
 	StringName _get_blend_shape_name(int64_t index) const override;
 	void _set_blend_shape_name(int64_t index, const StringName &name) override;
+	void _add_blend_shape_name(const StringName &p_name);
 	AABB _get_aabb() const override;
 	struct Surface {
 		Array arrays;
-		struct BlendShape {
-			Array arrays;
-		};
-		Vector<BlendShape> blend_shape_data;
+		Array blend_shape_data; //Array[Array][SubdivDataMesh::ARRAY_MAX]
 		Ref<Material> material;
 		String name;
 		int32_t flags = 0;
@@ -43,6 +41,7 @@ class SubdivDataMesh : public Mesh {
 		//int32_t format;
 	};
 	Vector<Surface> surfaces;
+	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
 
 protected:
 	void _set_data(const Dictionary &p_data);
@@ -91,19 +90,25 @@ public:
 		}
 	};
 
-	SubdivDataMesh();
-	~SubdivDataMesh();
-	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
-			const Ref<Material> &p_material, const String &p_name);
 	Array generate_trimesh_arrays(int surface_index) const;
+	Array generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays) const;
 	Array get_helper_mesh_arrays(int p_surface);
 	Array surface_get_data_arrays(int p_surface) const;
+	Array surface_get_blend_shape_data_arrays(int64_t surface_index) const;
+	Array surface_get_single_blend_shape_data_array(int64_t surface_index, int64_t blend_shape_idx) const;
+	int64_t get_blend_shape_data_count() const;
+
+	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
+			const Ref<Material> &p_material, const String &p_name);
 	String surface_get_name(int p_surface) const;
 	void surface_set_name(int p_surface, const String &p_name);
 	void surface_set_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);
 	PackedVector3Array surface_get_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);
 	int surface_get_length(int p_surface);
 	void clear();
+
+	SubdivDataMesh();
+	~SubdivDataMesh();
 };
 
 #endif

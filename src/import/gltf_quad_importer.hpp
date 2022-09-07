@@ -32,19 +32,12 @@ private:
 		PackedVector2Array uv_array;
 		PackedInt32Array bones_array; //could be float or int array after docs
 		PackedFloat32Array weights_array;
-		SurfaceVertexArrays(Array p_mesh_arrays) {
-			vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
-			normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
-			index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
-			uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
-			if (p_mesh_arrays[Mesh::ARRAY_BONES])
-				bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
-
-			if (p_mesh_arrays[Mesh::ARRAY_WEIGHTS])
-				weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
-		}
+		SurfaceVertexArrays(const Array &p_mesh_arrays);
+		SurfaceVertexArrays(){};
 	};
+
 	GLTFQuadImporter::QuadSurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface);
+	Array _generate_packed_blend_shapes(const Array &tri_blend_shapes, const PackedInt32Array &mesh_index_array, const PackedVector3Array &mesh_vertex_array);
 	void _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array);
 	PackedInt32Array _generate_uv_index_array(PackedVector2Array &uv_array);
 	Array generate_quad_mesh_arrays(const SurfaceVertexArrays &surface);

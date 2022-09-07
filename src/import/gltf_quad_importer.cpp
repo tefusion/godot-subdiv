@@ -22,7 +22,18 @@ void GLTFQuadImporter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("convert_meshinstance_to_quad", "MeshInstance3D"), &GLTFQuadImporter::convert_meshinstance_to_quad);
 }
 
-// TODO: blendshape conversion, also needs to happen here
+GLTFQuadImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
+	vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
+	normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
+	index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
+	uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
+	if (p_mesh_arrays[Mesh::ARRAY_BONES])
+		bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
+
+	if (p_mesh_arrays[Mesh::ARRAY_WEIGHTS])
+		weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
+}
+
 GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface) {
 	QuadSurfaceData quad_surface;
 	int max_index = 0;
@@ -129,6 +140,36 @@ PackedInt32Array GLTFQuadImporter::_generate_uv_index_array(PackedVector2Array &
 	return uv_index_array;
 }
 
+//same as remove duplicate vertices, just runs for every blend shape
+Array GLTFQuadImporter::_generate_packed_blend_shapes(const Array &tri_blend_shapes, const PackedInt32Array &mesh_index_array, const PackedVector3Array &mesh_vertex_array) {
+	int max_index = 0;
+	HashMap<Vector3, int> original_verts;
+	Vector<PackedVector3Array> packed_vertex_arrays;
+	packed_vertex_arrays.resize(tri_blend_shapes.size());
+	for (int vert_index = 0; vert_index < mesh_index_array.size(); vert_index++) {
+		int index = mesh_index_array[vert_index];
+		if (!original_verts.has(mesh_vertex_array[index])) {
+			original_verts.insert(mesh_vertex_array[index], max_index);
+			for (int blend_shape_idx = 0; blend_shape_idx < tri_blend_shapes.size(); blend_shape_idx++) { //TODO: possibly add normal and tangent here as well
+				const Array &single_blend_shape_array = tri_blend_shapes[blend_shape_idx];
+				const PackedVector3Array &tri_blend_vertex_array = single_blend_shape_array[Mesh::ARRAY_VERTEX];
+				packed_vertex_arrays.write[blend_shape_idx].append(tri_blend_vertex_array[index] - mesh_vertex_array[index]);
+			}
+			max_index++;
+		}
+	}
+
+	Array packed_blend_shape_array;
+	packed_blend_shape_array.resize(tri_blend_shapes.size());
+	for (int blend_shape_idx = 0; blend_shape_idx < tri_blend_shapes.size(); blend_shape_idx++) {
+		Array single_blend_shape_array;
+		single_blend_shape_array.resize(SubdivDataMesh::ARRAY_MAX);
+		single_blend_shape_array[SubdivDataMesh::ARRAY_VERTEX] = packed_vertex_arrays.get(blend_shape_idx);
+		packed_blend_shape_array[blend_shape_idx] = single_blend_shape_array;
+	}
+	return packed_blend_shape_array;
+}
+
 void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_object) {
 	MeshInstance3D *p_meshinstance = Object::cast_to<MeshInstance3D>(p_meshinstance_object);
 	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
@@ -139,11 +180,24 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
 		ERR_FAIL_COND_MSG(p_mesh->_surface_get_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
+		//convert actual mesh arrays to quad data
 		Array p_arrays = p_mesh->surface_get_arrays(surface_index);
-		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
 		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays));
+
+		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
+		Array blend_shape_arrays = p_mesh->surface_get_blend_shape_arrays(surface_index);
+		Array quad_blend_shape_arrays;
+		if (blend_shape_arrays.size()) {
+			Array mesh_arrays = p_mesh->surface_get_arrays(surface_index);
+			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, mesh_arrays[Mesh::ARRAY_INDEX], mesh_arrays[Mesh::ARRAY_VERTEX]);
+		} //TODO: blend shape data also contains ARRAY_NORMAL and ARRAY_TANGENT, considering normals get generated for subdivisions won't get added for now
+
 		ERR_FAIL_COND(!quad_surface_arrays.size());
-		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->surface_get_material(surface_index), p_mesh->surface_get_name(surface_index));
+		quad_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->surface_get_material(surface_index), p_mesh->surface_get_name(surface_index));
+	}
+	//actually add blendshapes to data
+	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
+		quad_mesh->_add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
@@ -172,11 +226,28 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
 		ERR_FAIL_COND_MSG(p_mesh->get_surface_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
+		//convert actual mesh data to quad
 		Array p_arrays = p_mesh->get_surface_arrays(surface_index);
 		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
 		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays));
+
+		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
+		p_arrays = p_mesh->get_surface_arrays(surface_index);
+		Array blend_shape_arrays;
+		Array quad_blend_shape_arrays;
+		for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
+			blend_shape_arrays.push_back(p_mesh->get_surface_blend_shape_arrays(surface_index, blend_shape_idx));
+		}
+		if (blend_shape_arrays.size()) {
+			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
+		}
+
 		ERR_FAIL_COND(!quad_surface_arrays.size());
-		quad_mesh->add_surface(quad_surface_arrays, Array(), p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index));
+		quad_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index));
+	}
+	//actually add blendshapes to data
+	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
+		quad_mesh->_add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
@@ -195,7 +266,6 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	p_meshinstance->queue_free();
 }
 
-// TODO: add blendshapes
 Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &surface) {
 	QuadSurfaceData quad_surface = _remove_duplicate_vertices(surface);
 	_merge_to_quads(quad_surface.index_array, quad_surface.uv_array);

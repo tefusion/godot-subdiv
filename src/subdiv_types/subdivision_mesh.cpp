@@ -210,8 +210,11 @@ void SubdivisionMesh::_create_subdivision_faces(const SubdivData &subdiv, Far::T
 		subdiv_quad_arrays[SubdivDataMesh::ARRAY_TEX_UV] = subdiv.uv_array;
 	}
 }
-
 void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_level) {
+	_update_subdivision(p_mesh, p_level, Vector<Array>()); //TODO: maybe split functions up
+}
+//just leave cached data arrays empty if you want to use p_mesh arrays
+void SubdivisionMesh::_update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_level, const Vector<Array> &cached_data_arrays) {
 	//auto start = high_resolution_clock::now(); //time measuring code
 	RenderingServer::get_singleton()->mesh_clear(subdiv_mesh);
 	subdiv_vertex_count.clear();
@@ -231,7 +234,8 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 
 	if (p_level == 0) {
 		for (int32_t surface_index = 0; surface_index < p_mesh->get_surface_count(); ++surface_index) {
-			Array triangle_arrays = p_mesh->generate_trimesh_arrays(surface_index);
+			Array triangle_arrays = cached_data_arrays.size() ? p_mesh->generate_trimesh_arrays_from_quad_arrays(cached_data_arrays[surface_index])
+															  : p_mesh->generate_trimesh_arrays(surface_index);
 			rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, triangle_arrays, Array(), Dictionary(), surface_format);
 			Ref<Material> material = p_mesh->_surface_get_material(surface_index); //TODO: currently calls function directly cause virtual surface_get_material still gives corrupt data?
 			rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
@@ -248,7 +252,8 @@ void SubdivisionMesh::update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_l
 	int32_t surface_count = p_mesh->get_surface_count();
 
 	for (int32_t surface_index = 0; surface_index < surface_count; ++surface_index) {
-		Array v_arrays = p_mesh->surface_get_data_arrays(surface_index);
+		Array v_arrays = cached_data_arrays.size() ? cached_data_arrays[surface_index]
+												   : p_mesh->surface_get_data_arrays(surface_index);
 		SubdivData subdiv = SubdivData(v_arrays);
 
 		const int num_channels = 1;

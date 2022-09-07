@@ -9,6 +9,69 @@
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "subdivision_server.hpp"
 
+//editor functions
+void SubdivMeshInstance3D::_notification(int p_what) {
+	switch (p_what) {
+		case 13: { //NOTIFICATION_READY
+			Callable callable = Callable(this, "_check_mesh_instance_changes");
+			this->connect("property_list_changed", Callable(this, "_check_mesh_instance_changes"));
+			break;
+		}
+		case 10: { //Node::NOTIFICATION_ENTER_TREE{ //FIXME: no access to enum
+			_resolve_skeleton_path();
+			_init_cached_data_array();
+			_update_subdiv();
+			if (skin_ref.is_valid()) {
+				_update_skinning();
+			}
+			set_base(subdiv_mesh->get_rid());
+			update_gizmos();
+			notify_property_list_changed();
+
+			break;
+		}
+	}
+}
+
+void SubdivMeshInstance3D::_get_property_list(List<PropertyInfo> *p_list) const {
+	List<String> blend_shape_name_list;
+	for (const KeyValue<StringName, int> &E : blend_shape_names) {
+		blend_shape_name_list.push_back(String(E.key));
+	}
+	blend_shape_name_list.sort();
+	for (int blend_shape_pos = 0; blend_shape_pos < blend_shape_name_list.size(); blend_shape_pos++) {
+		char *blend_shape_name = new char[blend_shape_name_list[blend_shape_pos].length() + 1];
+		memcpy(blend_shape_name, blend_shape_name_list[blend_shape_pos].utf8().get_data(), blend_shape_name_list[blend_shape_pos].length() + 1);
+		p_list->push_back(PropertyInfo(Variant::FLOAT, blend_shape_name, PROPERTY_HINT_RANGE, "-1,1,0.00001"));
+	}
+}
+
+//only for blendshapes setter
+bool SubdivMeshInstance3D::_set(const StringName &p_name, const Variant &p_value) {
+	if (!get_instance().is_valid()) {
+		return false;
+	}
+	HashMap<StringName, int>::Iterator found = blend_shape_names.find(p_name);
+	if (found) {
+		set_blend_shape_value(found->value, p_value);
+		return true;
+	}
+	return false;
+}
+//only for blendshapes getter
+bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value) const {
+	if (!get_instance().is_valid()) {
+		return false;
+	}
+	HashMap<StringName, int>::ConstIterator found = blend_shape_names.find(p_name);
+	if (found) {
+		return_value = get_blend_shape_value(found->value);
+		return true;
+	}
+	return false;
+}
+
+//start of non editor stuff
 void SubdivMeshInstance3D::set_subdiv_level(int p_level) {
 	ERR_FAIL_COND(p_level < 0);
 	subdiv_level = p_level;
@@ -25,24 +88,37 @@ int32_t SubdivMeshInstance3D::get_subdiv_level() {
 	return subdiv_level;
 }
 
-void SubdivMeshInstance3D::_notification(int p_what) {
-	switch (p_what) {
-		case 13: { //NOTIFICATION_READY
-			Callable callable = Callable(this, "_check_mesh_instance_changes");
-			this->connect("property_list_changed", Callable(this, "_check_mesh_instance_changes"));
-			break;
-		}
-		case 10: { //Node::NOTIFICATION_ENTER_TREE{ //FIXME: no access to enum
-			_resolve_skeleton_path();
-			_update_subdiv();
-			if (skin_ref.is_valid()) {
-				_update_skinning();
-			}
-			set_base(subdiv_mesh->get_rid());
-			update_gizmos();
-			notify_property_list_changed();
+float SubdivMeshInstance3D::get_blend_shape_value(int p_blend_shape) const {
+	ERR_FAIL_COND_V(get_mesh().is_null(), 0.0);
+	ERR_FAIL_INDEX_V(p_blend_shape, (int)blend_shape_values.size(), 0);
+	return blend_shape_values[p_blend_shape];
+}
 
-			break;
+void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_value) {
+	ERR_FAIL_COND(get_mesh().is_null());
+	ERR_FAIL_INDEX(p_blend_shape, (int)blend_shape_values.size());
+	float last_value = blend_shape_values.get(p_blend_shape);
+	blend_shape_values.set(p_blend_shape, p_value);
+
+	//update cached array, currently only updates vertex values
+	if (is_inside_tree()) {
+		ERR_FAIL_COND(!cached_data_array.size());
+		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
+			const Array &blend_shape_offset = get_mesh()->surface_get_single_blend_shape_data_array(surface_idx, p_blend_shape);
+			const Array &base_shape = get_mesh()->surface_get_data_arrays(surface_idx);
+			const PackedVector3Array &blend_shape_vertex_offsets = blend_shape_offset[SubdivDataMesh::ARRAY_VERTEX];
+			Array &target_surface = cached_data_array.write[surface_idx];
+			PackedVector3Array surface_vertex_array = target_surface[SubdivDataMesh::ARRAY_VERTEX]; //maybe reference, array makes that hard
+			ERR_FAIL_COND(surface_vertex_array.size() != blend_shape_vertex_offsets.size());
+			float offset = p_value - last_value;
+			for (int vertex_idx = 0; vertex_idx < surface_vertex_array.size(); vertex_idx++) {
+				surface_vertex_array[vertex_idx] += offset * (blend_shape_vertex_offsets[vertex_idx]);
+			}
+			target_surface[SubdivDataMesh::ARRAY_VERTEX] = surface_vertex_array;
+		}
+		_update_subdiv();
+		if (skin_ref.is_valid()) {
+			_update_skinning();
 		}
 	}
 }
@@ -73,7 +149,7 @@ void SubdivMeshInstance3D::_update_skinning() {
 	int surface_count = get_mesh()->get_surface_count();
 
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-		Array mesh_arrays = get_mesh()->surface_get_data_arrays(surface_index);
+		Array mesh_arrays = _get_cached_data_array(surface_index);
 		PackedVector3Array vertex_array = mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
 		const PackedInt32Array &bones_array = mesh_arrays[SubdivDataMesh::ARRAY_BONES];
 		const PackedFloat32Array &weights_array = mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS];
@@ -161,7 +237,7 @@ void SubdivMeshInstance3D::_update_subdiv() {
 		ERR_FAIL_COND(!subdivision_server);
 		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(get_mesh(), subdiv_level));
 	} else {
-		subdiv_mesh->update_subdivision(get_mesh(), subdiv_level);
+		subdiv_mesh->_update_subdivision(get_mesh(), subdiv_level, cached_data_array);
 	}
 	if (skin_ref.is_valid()) {
 		_update_skinning();
@@ -170,10 +246,41 @@ void SubdivMeshInstance3D::_update_subdiv() {
 
 void SubdivMeshInstance3D::_check_mesh_instance_changes() {
 	if (!get_mesh().is_valid() || get_mesh()->get_rid() != subdiv_mesh->source_mesh) {
+		_init_cached_data_array();
 		_update_subdiv();
 	} else if (skin_skeleton_path != get_skeleton_path()) {
 		_resolve_skeleton_path();
 		_update_skinning();
+	}
+}
+
+//returns mesh->surface_get_data_arrays if cached_data_array empty
+Array SubdivMeshInstance3D::_get_cached_data_array(int p_surface) const {
+	if (cached_data_array.size() == 0) {
+		return get_mesh()->surface_get_data_arrays(p_surface);
+	} else {
+		ERR_FAIL_INDEX_V(p_surface, cached_data_array.size(), Array());
+		return cached_data_array[p_surface];
+	}
+}
+
+//also inits blend shape data values
+void SubdivMeshInstance3D::_init_cached_data_array() {
+	cached_data_array.clear();
+	if (get_mesh().is_valid()) {
+		for (int surface_idx; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
+			cached_data_array.push_back(get_mesh()->surface_get_data_arrays(surface_idx));
+		}
+		if (get_mesh()->get_blend_shape_data_count() != blend_shape_names.size()) {
+			blend_shape_names.clear();
+			blend_shape_values.clear();
+			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_data_count(); blend_shape_idx++) {
+				blend_shape_names.insert(get_mesh()->_get_blend_shape_name(blend_shape_idx), blend_shape_idx);
+				blend_shape_values.push_back(0);
+			}
+		}
+
+		notify_property_list_changed();
 	}
 }
 
@@ -187,7 +294,11 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_update_skinning"), &SubdivMeshInstance3D::_update_skinning);
 	ClassDB::bind_method(D_METHOD("_check_mesh_instance_changes"), &SubdivMeshInstance3D::_check_mesh_instance_changes);
 
+	ClassDB::bind_method(D_METHOD("get_blend_shape_value", "blend_shape_idx"), &SubdivMeshInstance3D::get_blend_shape_value);
+	ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
+
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");
+	ADD_GROUP("Blend Shapes", "");
 }
 
 SubdivMeshInstance3D::SubdivMeshInstance3D() {
