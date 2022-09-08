@@ -31,8 +31,7 @@ protected:
 	NodePath skin_skeleton_path; //needed for checking changes
 
 	Vector<Array> cached_data_array; //array of surfaces after blend shapes are applied, if empty (if no blendshapes) getter will return normal data array
-	HashMap<StringName, int> blend_shape_names;
-	Vector<float> blend_shape_values;
+	Vector<float> last_blend_shape_values;
 
 	void _resolve_skeleton_path();
 	void _update_subdiv();
@@ -43,16 +42,12 @@ protected:
 protected:
 	static void _bind_methods();
 	void _notification(int p_what);
-	void _get_property_list(List<PropertyInfo> *p_list) const;
-	bool _set(const StringName &p_name, const Variant &p_value);
-	bool _get(const StringName &p_name, Variant &return_value) const;
 
 public:
 	int32_t get_subdiv_level();
 	void set_subdiv_level(int p_level);
 
-	float get_blend_shape_value(int p_blend_shape) const;
-	void set_blend_shape_value(int p_blend_shape, float p_value);
+	virtual void set_blend_shape_value(int p_blend_shape, float p_value);
 
 	//TODO: remove if MeshInstance gives access to skin ref
 	NodePath get_skeleton_path() {

@@ -27,7 +27,7 @@ void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_sha
 }
 
 //generates Mesh arrays for add_surface_call
-Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) const {
+Array SubdivDataMesh::generate_trimesh_arrays(int64_t surface_index) const {
 	const Array &quad_arrays = surface_get_data_arrays(surface_index);
 	return generate_trimesh_arrays_from_quad_arrays(quad_arrays);
 }
@@ -50,7 +50,10 @@ Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad
 		//add vertices part of quad
 		//after for loop unshared0 vertex will be at the positon quad_index in the new vertex_array in the SurfaceTool
 		for (int single_quad_index = quad_index; single_quad_index < quad_index + 4; single_quad_index++) {
-			tri_uv_array.append(quad_uv_array[quad_uv_index_array[single_quad_index]]);
+			if (quad_uv_array.size()) {
+				tri_uv_array.append(quad_uv_array[quad_uv_index_array[single_quad_index]]);
+			}
+
 			tri_normal_array.append(quad_normal_array[quad_index_array[single_quad_index]]);
 			tri_vertex_array.append(quad_vertex_array[quad_index_array[single_quad_index]]);
 		} //unshared0, shared0, unshared1, shared1
@@ -74,7 +77,7 @@ Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad
 }
 
 //this method gives the actual stored vertices
-Array SubdivDataMesh::surface_get_data_arrays(int p_index) const {
+Array SubdivDataMesh::surface_get_data_arrays(int64_t p_index) const {
 	ERR_FAIL_INDEX_V(p_index, surfaces.size(), Array());
 	return surfaces[p_index].arrays;
 }
@@ -184,9 +187,9 @@ Array SubdivDataMesh::_surface_get_arrays(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, get_surface_count(), Array());
 	return generate_trimesh_arrays(index);
 }
-Array SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t index) const {
-	//TODO:
-	return Array();
+Array SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t surface_index) const {
+	ERR_FAIL_INDEX_V(surface_index, surfaces.size(), Array());
+	return surfaces[surface_index].blend_shape_data;
 }
 Dictionary SubdivDataMesh::_surface_get_lods(int64_t index) const {
 	//TODO:
@@ -213,8 +216,7 @@ Ref<Material> SubdivDataMesh::_surface_get_material(int64_t index) const {
 }
 
 int64_t SubdivDataMesh::_get_blend_shape_count() const {
-	return 0; //TODO: can return actual size after generated blendshape tri arrays are made
-	//return blend_shapes.size();
+	return blend_shapes.size();
 }
 StringName SubdivDataMesh::_get_blend_shape_name(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, blend_shapes.size(), StringName());

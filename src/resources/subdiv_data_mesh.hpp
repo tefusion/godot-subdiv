@@ -90,10 +90,10 @@ public:
 		}
 	};
 
-	Array generate_trimesh_arrays(int surface_index) const;
+	Array generate_trimesh_arrays(int64_t surface_index) const;
 	Array generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays) const;
-	Array get_helper_mesh_arrays(int p_surface);
-	Array surface_get_data_arrays(int p_surface) const;
+	Array get_helper_mesh_arrays(int64_t p_surface);
+	Array surface_get_data_arrays(int64_t p_surface) const;
 	Array surface_get_blend_shape_data_arrays(int64_t surface_index) const;
 	Array surface_get_single_blend_shape_data_array(int64_t surface_index, int64_t blend_shape_idx) const;
 	int64_t get_blend_shape_data_count() const;

@@ -13,13 +13,15 @@
 void SubdivMeshInstance3D::_notification(int p_what) {
 	switch (p_what) {
 		case 13: { //NOTIFICATION_READY
+			_init_cached_data_array();
 			Callable callable = Callable(this, "_check_mesh_instance_changes");
 			this->connect("property_list_changed", Callable(this, "_check_mesh_instance_changes"));
+
 			break;
 		}
 		case 10: { //Node::NOTIFICATION_ENTER_TREE{ //FIXME: no access to enum
 			_resolve_skeleton_path();
-			_init_cached_data_array();
+
 			_update_subdiv();
 			if (skin_ref.is_valid()) {
 				_update_skinning();
@@ -31,44 +33,6 @@ void SubdivMeshInstance3D::_notification(int p_what) {
 			break;
 		}
 	}
-}
-
-void SubdivMeshInstance3D::_get_property_list(List<PropertyInfo> *p_list) const {
-	List<String> blend_shape_name_list;
-	for (const KeyValue<StringName, int> &E : blend_shape_names) {
-		blend_shape_name_list.push_back(String(E.key));
-	}
-	blend_shape_name_list.sort();
-	for (int blend_shape_pos = 0; blend_shape_pos < blend_shape_name_list.size(); blend_shape_pos++) {
-		char *blend_shape_name = new char[blend_shape_name_list[blend_shape_pos].length() + 1];
-		memcpy(blend_shape_name, blend_shape_name_list[blend_shape_pos].utf8().get_data(), blend_shape_name_list[blend_shape_pos].length() + 1);
-		p_list->push_back(PropertyInfo(Variant::FLOAT, blend_shape_name, PROPERTY_HINT_RANGE, "-1,1,0.00001"));
-	}
-}
-
-//only for blendshapes setter
-bool SubdivMeshInstance3D::_set(const StringName &p_name, const Variant &p_value) {
-	if (!get_instance().is_valid()) {
-		return false;
-	}
-	HashMap<StringName, int>::Iterator found = blend_shape_names.find(p_name);
-	if (found) {
-		set_blend_shape_value(found->value, p_value);
-		return true;
-	}
-	return false;
-}
-//only for blendshapes getter
-bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value) const {
-	if (!get_instance().is_valid()) {
-		return false;
-	}
-	HashMap<StringName, int>::ConstIterator found = blend_shape_names.find(p_name);
-	if (found) {
-		return_value = get_blend_shape_value(found->value);
-		return true;
-	}
-	return false;
 }
 
 //start of non editor stuff
@@ -88,18 +52,16 @@ int32_t SubdivMeshInstance3D::get_subdiv_level() {
 	return subdiv_level;
 }
 
-float SubdivMeshInstance3D::get_blend_shape_value(int p_blend_shape) const {
-	ERR_FAIL_COND_V(get_mesh().is_null(), 0.0);
-	ERR_FAIL_INDEX_V(p_blend_shape, (int)blend_shape_values.size(), 0);
-	return blend_shape_values[p_blend_shape];
-}
-
 void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_value) {
 	ERR_FAIL_COND(get_mesh().is_null());
-	ERR_FAIL_INDEX(p_blend_shape, (int)blend_shape_values.size());
-	float last_value = blend_shape_values.get(p_blend_shape);
-	blend_shape_values.set(p_blend_shape, p_value);
+	ERR_FAIL_INDEX(p_blend_shape, get_blend_shape_count());
 
+	if (!last_blend_shape_values.size()) {
+		last_blend_shape_values.resize(get_blend_shape_count());
+		last_blend_shape_values.fill(0.0);
+	}
+	float last_value = last_blend_shape_values[p_blend_shape];
+	last_blend_shape_values.write[p_blend_shape] = p_value;
 	//update cached array, currently only updates vertex values
 	if (is_inside_tree()) {
 		ERR_FAIL_COND(!cached_data_array.size());
@@ -267,20 +229,13 @@ Array SubdivMeshInstance3D::_get_cached_data_array(int p_surface) const {
 //also inits blend shape data values
 void SubdivMeshInstance3D::_init_cached_data_array() {
 	cached_data_array.clear();
+	last_blend_shape_values.clear();
 	if (get_mesh().is_valid()) {
-		for (int surface_idx; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
+		last_blend_shape_values.resize(get_blend_shape_count());
+		last_blend_shape_values.fill(0.0);
+		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
 			cached_data_array.push_back(get_mesh()->surface_get_data_arrays(surface_idx));
 		}
-		if (get_mesh()->get_blend_shape_data_count() != blend_shape_names.size()) {
-			blend_shape_names.clear();
-			blend_shape_values.clear();
-			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_data_count(); blend_shape_idx++) {
-				blend_shape_names.insert(get_mesh()->_get_blend_shape_name(blend_shape_idx), blend_shape_idx);
-				blend_shape_values.push_back(0);
-			}
-		}
-
-		notify_property_list_changed();
 	}
 }
 
@@ -295,7 +250,9 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_check_mesh_instance_changes"), &SubdivMeshInstance3D::_check_mesh_instance_changes);
 
 	ClassDB::bind_method(D_METHOD("get_blend_shape_value", "blend_shape_idx"), &SubdivMeshInstance3D::get_blend_shape_value);
-	ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
+	//ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
+
+	SubdivMeshInstance3D::register_virtuals<MeshInstance3D>();
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");
 	ADD_GROUP("Blend Shapes", "");
