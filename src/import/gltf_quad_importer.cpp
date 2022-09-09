@@ -162,9 +162,6 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 	bool has_skinning = (format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS);
 	bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
-	if (double_bone_weights) {
-		UtilityFunctions::print("OWO");
-	}
 	bool has_normals = format & Mesh::ARRAY_FORMAT_NORMAL;
 	//TODO: maybe add tangents, uv2 here too, considering that data is lost after subdivisions not that urgent
 
@@ -343,7 +340,6 @@ int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
 	if ((format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS)) {
 		const PackedVector3Array &vertex_array = arrays[Mesh::ARRAY_VERTEX];
 		const PackedFloat32Array &weights_array = arrays[Mesh::ARRAY_WEIGHTS];
-		UtilityFunctions::print(vertex_array.size(), " ", weights_array.size());
 		if (vertex_array.size() * 8 == weights_array.size())
 			format |= Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
 	}

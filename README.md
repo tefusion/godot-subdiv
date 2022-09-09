@@ -1,3 +1,4 @@
+![Version](https://img.shields.io/badge/version-Godot%204-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
 # Godot Subdiv
 
 | ![UV Subdivision](UVSubdivision.gif) | ![Skinning subdivision](SkinningSubdivision.gif) |
@@ -10,6 +11,13 @@ For importing a QuadMesh you can select a glb/gltf file **that contained only qu
 After that you can just create an Inherited Scene and should see the custom QuadImporterMeshInstance
 with a subdivison level editor setting. 
 
+
+## FAQ
+
+### How to create a mesh only containing Quads?
+
+In Blender you can go in Edit Mode and go Select->Select All by Trait->Faces by Sides and set it to Not Equal To 4. After removing the then selected faces and replacing them with quads import will work.
+
 ## Acknowledgements
 
 - [OpenSubdiv](https://github.com/PixarAnimationStudios/OpenSubdiv) files in [thirdparty/opensubdiv](thirdparty/opensubdiv) licensed under [Modified Apache 2.0](thirdparty/opensubdiv/LICENSE.txt)
@@ -18,7 +26,7 @@ with a subdivison level editor setting.
 
 ## Last tested Godot version
 
-Godot Alpha 15
+Godot Alpha 16
 ## License
 
 [MIT](LICENSE)
