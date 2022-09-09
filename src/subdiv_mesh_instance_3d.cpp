@@ -156,7 +156,11 @@ void SubdivMeshInstance3D::_update_skinning() {
 	int surface_count = get_mesh()->get_surface_count();
 
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-		ERR_CONTINUE(!(get_mesh()->_surface_get_format(surface_index) & Mesh::ARRAY_FORMAT_BONES));
+		int32_t format = get_mesh()->_surface_get_format(surface_index);
+		ERR_CONTINUE(!(format & Mesh::ARRAY_FORMAT_BONES) || !(format & Mesh::ARRAY_FORMAT_WEIGHTS));
+		bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
+		int weights_per_vert = double_bone_weights ? 8 : 4;
+
 		Array mesh_arrays = _get_cached_data_array(surface_index);
 		PackedVector3Array vertex_array = mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
 		const PackedInt32Array &bones_array = mesh_arrays[SubdivDataMesh::ARRAY_BONES];
@@ -164,31 +168,24 @@ void SubdivMeshInstance3D::_update_skinning() {
 
 		ERR_FAIL_COND(bones_array.size() != weights_array.size() || bones_array.size() != vertex_array.size() * 4);
 
-		//TODO: add format to quad mesh
-		// ERR_CONTINUE(0 == (format_read & Mesh::ARRAY_FORMAT_BONES));
-		// ERR_CONTINUE(0 == (format_read & Mesh::ARRAY_FORMAT_WEIGHTS));
-
 		for (int vertex_index = 0; vertex_index < vertex_array.size(); ++vertex_index) {
-			float bone_weights[4];
-			int b[4];
-			for (int bone_idx = 0; bone_idx < 4; bone_idx++) {
-				bone_weights[bone_idx] = weights_array[vertex_index * 4 + bone_idx];
-				b[bone_idx] = bones_array[vertex_index * 4 + bone_idx];
+			int offset = vertex_index * weights_per_vert;
+			Vector3 origin;
+			Vector3 basis_x;
+			Vector3 basis_y;
+			Vector3 basis_z;
+
+			for (int bone_idx = 0; bone_idx < weights_per_vert; bone_idx++) {
+				float bone_weight = weights_array[offset + bone_idx];
+				int bone = bones_array[offset + bone_idx];
+				origin += bone_weight * bone_transforms[bone].origin;
+				basis_x += bone_weight * bone_transforms[bone].basis.get_axis(0);
+				basis_y += bone_weight * bone_transforms[bone].basis.get_axis(1);
+				basis_z += bone_weight * bone_transforms[bone].basis.get_axis(2);
 			}
-
 			Transform3D transform;
-			transform.origin =
-					bone_weights[0] * bone_transforms[b[0]].origin +
-					bone_weights[1] * bone_transforms[b[1]].origin +
-					bone_weights[2] * bone_transforms[b[2]].origin +
-					bone_weights[3] * bone_transforms[b[3]].origin;
-
-			transform.basis =
-					bone_weights[0] * bone_transforms[b[0]].basis +
-					bone_weights[1] * bone_transforms[b[1]].basis +
-					bone_weights[2] * bone_transforms[b[2]].basis +
-					bone_weights[3] * bone_transforms[b[3]].basis;
-
+			transform.origin = origin;
+			transform.basis = Basis(basis_x, basis_y, basis_z);
 			vertex_array[vertex_index] = transform.xform(vertex_array[vertex_index]);
 		}
 		_update_subdiv_mesh_vertices(surface_index, vertex_array);

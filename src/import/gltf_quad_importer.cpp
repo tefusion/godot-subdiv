@@ -45,7 +45,6 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
-		ERR_FAIL_COND_MSG(p_mesh->_surface_get_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
 		//convert actual mesh arrays to quad data
 		Array p_arrays = p_mesh->surface_get_arrays(surface_index);
 		int32_t format = p_mesh->surface_get_format(surface_index);
@@ -91,7 +90,6 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
-		ERR_FAIL_COND_MSG(p_mesh->get_surface_format(surface_index) & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS != 0, "Currently only 4 bone weights are supported. Conversion unsuccesful.");
 		//convert actual mesh data to quad
 		Array p_arrays = p_mesh->get_surface_arrays(surface_index);
 		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
@@ -163,6 +161,10 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 	//these booleans decide what data gets stored, could be used directly with format, but I think this is more readable
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 	bool has_skinning = (format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS);
+	bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
+	if (double_bone_weights) {
+		UtilityFunctions::print("OWO");
+	}
 	bool has_normals = format & Mesh::ARRAY_FORMAT_NORMAL;
 	//TODO: maybe add tangents, uv2 here too, considering that data is lost after subdivisions not that urgent
 
@@ -181,7 +183,8 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 
 			// weights and bones arrays to corresponding vertex (4 weights per vert)
 			if (has_skinning) {
-				for (int weight_index = index * 4; weight_index < (index + 1) * 4; weight_index++) {
+				int bone_weights_per_vert = double_bone_weights ? 8 : 4;
+				for (int weight_index = index * bone_weights_per_vert; weight_index < (index + 1) * bone_weights_per_vert; weight_index++) {
 					quad_surface.weights_array.append(surface.weights_array[weight_index]);
 					quad_surface.bones_array.append(surface.bones_array[weight_index]);
 				}
@@ -320,7 +323,7 @@ int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
 	if (arrays[Mesh::ARRAY_VERTEX])
 		format |= Mesh::ARRAY_FORMAT_VERTEX;
 	if (arrays[Mesh::ARRAY_NORMAL])
-		format |= Mesh::ARRAY_FORMAT_VERTEX;
+		format |= Mesh::ARRAY_FORMAT_NORMAL;
 	if (arrays[Mesh::ARRAY_TANGENT])
 		format |= Mesh::ARRAY_FORMAT_TANGENT;
 	if (arrays[Mesh::ARRAY_COLOR])
@@ -340,7 +343,8 @@ int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
 	if ((format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS)) {
 		const PackedVector3Array &vertex_array = arrays[Mesh::ARRAY_VERTEX];
 		const PackedFloat32Array &weights_array = arrays[Mesh::ARRAY_WEIGHTS];
-		if (vertex_array.size() * 2 == weights_array.size())
+		UtilityFunctions::print(vertex_array.size(), " ", weights_array.size());
+		if (vertex_array.size() * 8 == weights_array.size())
 			format |= Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
 	}
 
