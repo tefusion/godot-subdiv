@@ -16,21 +16,21 @@ class SubdivisionMesh;
 class SubdivDataMesh : public Mesh {
 	GDCLASS(SubdivDataMesh, Mesh);
 
-	int64_t _get_surface_count() const override;
-	int64_t _surface_get_array_len(int64_t index) const override;
-	int64_t _surface_get_array_index_len(int64_t index) const override;
-	Array _surface_get_arrays(int64_t index) const;
-	Array _surface_get_blend_shape_arrays(int64_t index) const override;
-	Dictionary _surface_get_lods(int64_t index) const override;
-	int64_t _surface_get_format(int64_t index) const override;
-	int64_t _surface_get_primitive_type(int64_t index) const override;
-	void _surface_set_material(int64_t index, const Ref<Material> &material) override;
-	Ref<Material> _surface_get_material(int64_t index) const override;
-	int64_t _get_blend_shape_count() const override;
-	StringName _get_blend_shape_name(int64_t index) const override;
-	void _set_blend_shape_name(int64_t index, const StringName &name) override;
-	void _add_blend_shape_name(const StringName &p_name);
-	AABB _get_aabb() const override;
+	virtual int64_t _get_surface_count() const override;
+	virtual int64_t _surface_get_array_len(int64_t index) const override;
+	virtual int64_t _surface_get_array_index_len(int64_t index) const override;
+	virtual Array _surface_get_arrays(int64_t index) const;
+	virtual Array _surface_get_blend_shape_arrays(int64_t index) const override;
+	virtual Dictionary _surface_get_lods(int64_t index) const override;
+	virtual int64_t _surface_get_format(int64_t index) const override;
+	virtual int64_t _surface_get_primitive_type(int64_t index) const override;
+	virtual void _surface_set_material(int64_t index, const Ref<Material> &material) override;
+	virtual Ref<Material> _surface_get_material(int64_t index) const override;
+	virtual int64_t _get_blend_shape_count() const override;
+	virtual StringName _get_blend_shape_name(int64_t index) const override;
+	virtual void _set_blend_shape_name(int64_t index, const StringName &name) override;
+	virtual void _add_blend_shape_name(const StringName &p_name);
+	virtual AABB _get_aabb() const override;
 	struct Surface {
 		Array arrays;
 		Array blend_shape_data; //Array[Array][SubdivDataMesh::ARRAY_MAX]
@@ -38,7 +38,7 @@ class SubdivDataMesh : public Mesh {
 		String name;
 		int32_t flags = 0;
 		AABB aabb;
-		//int32_t format;
+		int32_t format;
 	};
 	Vector<Surface> surfaces;
 	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
@@ -91,7 +91,7 @@ public:
 	};
 
 	Array generate_trimesh_arrays(int surface_index) const;
-	Array generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays) const;
+	Array generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays, int32_t p_format) const;
 	Array get_helper_mesh_arrays(int p_surface);
 	Array surface_get_data_arrays(int p_surface) const;
 	Array surface_get_blend_shape_data_arrays(int64_t surface_index) const;
@@ -99,7 +99,7 @@ public:
 	int64_t get_blend_shape_data_count() const;
 
 	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
-			const Ref<Material> &p_material, const String &p_name);
+			const Ref<Material> &p_material, const String &p_name, int32_t p_format);
 	String surface_get_name(int p_surface) const;
 	void surface_set_name(int p_surface, const String &p_name);
 	void surface_set_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);

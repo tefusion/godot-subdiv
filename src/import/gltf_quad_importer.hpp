@@ -36,11 +36,14 @@ private:
 		SurfaceVertexArrays(){};
 	};
 
-	GLTFQuadImporter::QuadSurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface);
-	Array _generate_packed_blend_shapes(const Array &tri_blend_shapes, const PackedInt32Array &mesh_index_array, const PackedVector3Array &mesh_vertex_array);
-	void _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array);
+	GLTFQuadImporter::QuadSurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format);
+	Array _generate_packed_blend_shapes(const Array &tri_blend_shapes,
+			const PackedInt32Array &mesh_index_array, const PackedVector3Array &mesh_vertex_array);
+	void _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format);
 	PackedInt32Array _generate_uv_index_array(PackedVector2Array &uv_array);
-	Array generate_quad_mesh_arrays(const SurfaceVertexArrays &surface);
+	Array generate_quad_mesh_arrays(const SurfaceVertexArrays &surface, int32_t format);
+
+	int32_t generate_fake_format(const Array &arrays) const;
 
 public:
 	GLTFQuadImporter();

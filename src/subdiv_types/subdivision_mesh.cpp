@@ -224,18 +224,16 @@ void SubdivisionMesh::_update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_
 	ERR_FAIL_COND(p_level < 0);
 	source_mesh = p_mesh->get_rid();
 	RenderingServer *rendering_server = RenderingServer::get_singleton();
-	uint32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
-	surface_format |= Mesh::ARRAY_FORMAT_TEX_UV;
-	surface_format |= Mesh::ARRAY_FORMAT_INDEX;
-	surface_format |= Mesh::ARRAY_FORMAT_NORMAL;
-	// surface_format &= ~Mesh::ARRAY_COMPRESS_FLAGS_BASE;
-	// surface_format |= Mesh::ARRAY_FORMAT_TANGENT;
-	// surface_format |= Mesh::ARRAY_FLAG_USE_DYNAMIC_UPDATE;
 
 	if (p_level == 0) {
 		for (int32_t surface_index = 0; surface_index < p_mesh->get_surface_count(); ++surface_index) {
-			Array triangle_arrays = cached_data_arrays.size() ? p_mesh->generate_trimesh_arrays_from_quad_arrays(cached_data_arrays[surface_index])
+			int32_t surface_format = p_mesh->_surface_get_format(surface_index); //prepare format
+			surface_format &= ~Mesh::ARRAY_FORMAT_BONES; //might cause issues on rendering server so erase bits
+			surface_format &= ~Mesh::ARRAY_FORMAT_WEIGHTS;
+
+			Array triangle_arrays = cached_data_arrays.size() ? p_mesh->generate_trimesh_arrays_from_quad_arrays(cached_data_arrays[surface_index], surface_format)
 															  : p_mesh->generate_trimesh_arrays(surface_index);
+
 			rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, triangle_arrays, Array(), Dictionary(), surface_format);
 			Ref<Material> material = p_mesh->_surface_get_material(surface_index); //TODO: currently calls function directly cause virtual surface_get_material still gives corrupt data?
 			rendering_server->mesh_surface_set_material(subdiv_mesh, surface_index, material.is_null() ? RID() : material->get_rid());
@@ -252,22 +250,33 @@ void SubdivisionMesh::_update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_
 	int32_t surface_count = p_mesh->get_surface_count();
 
 	for (int32_t surface_index = 0; surface_index < surface_count; ++surface_index) {
+		int32_t surface_format = p_mesh->_surface_get_format(surface_index); //prepare format
+		surface_format &= ~Mesh::ARRAY_FORMAT_BONES; //might cause issues on rendering server so erase bits
+		surface_format &= ~Mesh::ARRAY_FORMAT_WEIGHTS;
+		bool use_uv = surface_format & Mesh::ARRAY_FORMAT_TEX_UV;
+
 		Array v_arrays = cached_data_arrays.size() ? cached_data_arrays[surface_index]
 												   : p_mesh->surface_get_data_arrays(surface_index);
 		SubdivData subdiv = SubdivData(v_arrays);
 
-		const int num_channels = 1;
+		const int num_channels = use_uv; //TODO: maybe add channel for tex uv 2
+		const bool face_varying_data = num_channels > 0;
 
 		Far::TopologyRefiner *refiner;
 
 		refiner = _create_topology_refiner(&subdiv, p_level, num_channels);
 		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
-		_create_subdivision_vertices(&subdiv, refiner, p_level, true);
+		_create_subdivision_vertices(&subdiv, refiner, p_level, face_varying_data);
 
 		Array subdiv_quad_arrays;
 		subdiv_quad_arrays.resize(SubdivDataMesh::ARRAY_MAX);
-		_create_subdivision_faces(subdiv, refiner, p_level, true, subdiv_quad_arrays);
+		if (!use_uv) { //otherwise uv_index_array_out casting issues
+			subdiv_quad_arrays[SubdivDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
+		}
+
+		_create_subdivision_faces(subdiv, refiner, p_level, face_varying_data, subdiv_quad_arrays);
 		subdiv.normal_array = _calculate_smooth_normals(subdiv.vertex_array, subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX]);
+
 		const PackedInt32Array &index_array_out = subdiv_quad_arrays[SubdivDataMesh::ARRAY_INDEX];
 		const PackedInt32Array &uv_index_array_out = subdiv_quad_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
 
@@ -286,7 +295,9 @@ void SubdivisionMesh::_update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_
 
 			//after for loop unshared0 vertex will be at the positon quad_index in the new vertex_array in the SurfaceTool
 			for (int single_quad_index = quad_index; single_quad_index < quad_index + 4; single_quad_index++) {
-				uv_array.append(subdiv.uv_array[uv_index_array_out[single_quad_index]]);
+				if (use_uv) {
+					uv_array.append(subdiv.uv_array[uv_index_array_out[single_quad_index]]);
+				}
 				vertex_array.append(subdiv.vertex_array[index_array_out[single_quad_index]]);
 				normal_array.append(subdiv.normal_array[index_array_out[single_quad_index]]);
 			} //unshared0, shared0, unshared1, shared1
@@ -304,7 +315,9 @@ void SubdivisionMesh::_update_subdivision(Ref<SubdivDataMesh> p_mesh, int32_t p_
 
 		subdiv_triangle_arrays[Mesh::ARRAY_VERTEX] = vertex_array;
 		subdiv_triangle_arrays[Mesh::ARRAY_INDEX] = index_array;
-		subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
+		if (use_uv) {
+			subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
+		}
 		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
 
 		subdiv_vertex_count.append(vertex_array.size());

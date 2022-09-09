@@ -5,12 +5,13 @@
 #include "subdiv_types/subdivision_mesh.hpp"
 #include "subdivision_server.hpp"
 
-void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name) {
+void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name, int32_t p_format) {
 	ERR_FAIL_COND(p_arrays.size() != SubdivDataMesh::ARRAY_MAX);
 	Surface s;
 	s.arrays = p_arrays;
 	s.name = p_name;
 	s.material = p_material;
+	s.format = p_format;
 	PackedVector3Array vertex_array = p_arrays[SubdivDataMesh::ARRAY_VERTEX];
 	int vertex_count = vertex_array.size();
 	ERR_FAIL_COND(vertex_count == 0);
@@ -28,12 +29,16 @@ void SubdivDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_sha
 
 //generates Mesh arrays for add_surface_call
 Array SubdivDataMesh::generate_trimesh_arrays(int surface_index) const {
+	ERR_FAIL_INDEX_V(surface_index, get_surface_count(), Array());
 	const Array &quad_arrays = surface_get_data_arrays(surface_index);
-	return generate_trimesh_arrays_from_quad_arrays(quad_arrays);
+	return generate_trimesh_arrays_from_quad_arrays(quad_arrays, _surface_get_format(surface_index));
 }
 
-Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays) const {
+Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad_arrays, int32_t p_format) const {
 	ERR_FAIL_COND_V_MSG(quad_arrays.size() != SubdivDataMesh::ARRAY_MAX, Array(), "Surface arrays of quad mesh corrupted, try reimporting.");
+	bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	bool use_normal = p_format & Mesh::ARRAY_FORMAT_NORMAL;
+
 	const PackedVector3Array &quad_vertex_array = quad_arrays[SubdivDataMesh::ARRAY_VERTEX];
 	const PackedInt32Array &quad_index_array = quad_arrays[SubdivDataMesh::ARRAY_INDEX];
 	const PackedVector3Array &quad_normal_array = quad_arrays[SubdivDataMesh::ARRAY_NORMAL];
@@ -50,8 +55,12 @@ Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad
 		//add vertices part of quad
 		//after for loop unshared0 vertex will be at the positon quad_index in the new vertex_array in the SurfaceTool
 		for (int single_quad_index = quad_index; single_quad_index < quad_index + 4; single_quad_index++) {
-			tri_uv_array.append(quad_uv_array[quad_uv_index_array[single_quad_index]]);
-			tri_normal_array.append(quad_normal_array[quad_index_array[single_quad_index]]);
+			if (use_uv) {
+				tri_uv_array.append(quad_uv_array[quad_uv_index_array[single_quad_index]]);
+			}
+			if (use_normal) {
+				tri_normal_array.append(quad_normal_array[quad_index_array[single_quad_index]]);
+			}
 			tri_vertex_array.append(quad_vertex_array[quad_index_array[single_quad_index]]);
 		} //unshared0, shared0, unshared1, shared1
 
@@ -68,8 +77,13 @@ Array SubdivDataMesh::generate_trimesh_arrays_from_quad_arrays(const Array &quad
 
 	tri_arrays[Mesh::ARRAY_VERTEX] = tri_vertex_array;
 	tri_arrays[Mesh::ARRAY_INDEX] = tri_index_array;
-	tri_arrays[Mesh::ARRAY_NORMAL] = tri_normal_array;
-	tri_arrays[Mesh::ARRAY_TEX_UV] = tri_uv_array;
+	if (use_normal) {
+		tri_arrays[Mesh::ARRAY_NORMAL] = tri_normal_array;
+	}
+	if (use_uv) {
+		tri_arrays[Mesh::ARRAY_TEX_UV] = tri_uv_array;
+	}
+
 	return tri_arrays;
 }
 
@@ -105,6 +119,7 @@ void SubdivDataMesh::_set_data(const Dictionary &p_data) {
 			Dictionary s = surface_arr[i];
 			ERR_CONTINUE(!s.has("arrays"));
 			Array arr = s["arrays"];
+			int32_t format = s["format"];
 			String name;
 			if (s.has("name")) {
 				name = s["name"];
@@ -118,7 +133,7 @@ void SubdivDataMesh::_set_data(const Dictionary &p_data) {
 				material = s["material"];
 			}
 
-			add_surface(arr, b_shapes, material, name);
+			add_surface(arr, b_shapes, material, name, format);
 		}
 	}
 }
@@ -131,6 +146,7 @@ Dictionary SubdivDataMesh::_get_data() const {
 	for (int i = 0; i < surfaces.size(); i++) {
 		Dictionary d;
 		d["arrays"] = surfaces[i].arrays;
+		d["format"] = surfaces[i].format;
 		if (surfaces[i].blend_shape_data.size()) {
 			Array bs_data;
 			for (int j = 0; j < surfaces[i].blend_shape_data.size(); j++) {
@@ -138,14 +154,6 @@ Dictionary SubdivDataMesh::_get_data() const {
 			}
 			d["blend_shapes"] = bs_data;
 		}
-		// if (surfaces[i].lods.size()) {
-		// 	Dictionary lods;
-		// 	for (int j = 0; j < surfaces[i].lods.size(); j++) {
-		// 		lods[surfaces[i].lods[j].distance] = surfaces[i].lods[j].indices;
-		// 	}
-		// 	d["lods"] = lods;
-		// }
-
 		if (surfaces[i].material.is_valid()) {
 			d["material"] = surfaces[i].material;
 		}
@@ -194,8 +202,8 @@ Dictionary SubdivDataMesh::_surface_get_lods(int64_t index) const {
 }
 
 int64_t SubdivDataMesh::_surface_get_format(int64_t index) const {
-	//TODO:
-	return 1;
+	ERR_FAIL_INDEX_V(index, get_surface_count(), 0);
+	return surfaces[index].format;
 }
 
 int64_t SubdivDataMesh::_surface_get_primitive_type(int64_t index) const {
@@ -265,7 +273,6 @@ void SubdivDataMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_get_data"), &SubdivDataMesh::_get_data);
 
 	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
-	//ClassDB::bind_method(D_METHOD("generate_trimesh"), &SubdivDataMesh::generate_trimesh, DEFVAL(Ref<ArrayMesh>()));
 
 	//virtuals of mesh
 	SubdivDataMesh::register_virtuals<Mesh>();

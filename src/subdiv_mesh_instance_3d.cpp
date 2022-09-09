@@ -17,18 +17,25 @@ void SubdivMeshInstance3D::_notification(int p_what) {
 			this->connect("property_list_changed", Callable(this, "_check_mesh_instance_changes"));
 			break;
 		}
-		case 10: { //Node::NOTIFICATION_ENTER_TREE{ //FIXME: no access to enum
-			_resolve_skeleton_path();
+		case 10: { //NOTIFICATION_ENTER_TREE
 			_init_cached_data_array();
-			_update_subdiv();
-			if (skin_ref.is_valid()) {
-				_update_skinning();
-			}
-			set_base(subdiv_mesh->get_rid());
-			update_gizmos();
-			notify_property_list_changed();
+			_resolve_skeleton_path();
 
 			break;
+		}
+		//FIXME: notification enter tree was too late for surface materials to create subdiv mesh, this solution isn't best cause parented!=in scene
+		case 18: { //NOTIFICATION_PARENTED
+			_update_subdiv();
+			set_base(subdiv_mesh->get_rid());
+			update_gizmos();
+
+			break;
+		}
+		case 19: { //NOTIFIACTION_UNPARENTED
+			if (subdiv_mesh) {
+				SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
+			}
+			subdiv_mesh = NULL;
 		}
 	}
 }
@@ -102,7 +109,7 @@ void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_valu
 
 	//update cached array, currently only updates vertex values
 	if (is_inside_tree()) {
-		ERR_FAIL_COND(!cached_data_array.size());
+		ERR_FAIL_COND(cached_data_array.is_empty());
 		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
 			const Array &blend_shape_offset = get_mesh()->surface_get_single_blend_shape_data_array(surface_idx, p_blend_shape);
 			const Array &base_shape = get_mesh()->surface_get_data_arrays(surface_idx);
@@ -149,6 +156,7 @@ void SubdivMeshInstance3D::_update_skinning() {
 	int surface_count = get_mesh()->get_surface_count();
 
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
+		ERR_CONTINUE(!(get_mesh()->_surface_get_format(surface_index) & Mesh::ARRAY_FORMAT_BONES));
 		Array mesh_arrays = _get_cached_data_array(surface_index);
 		PackedVector3Array vertex_array = mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
 		const PackedInt32Array &bones_array = mesh_arrays[SubdivDataMesh::ARRAY_BONES];
@@ -267,13 +275,13 @@ Array SubdivMeshInstance3D::_get_cached_data_array(int p_surface) const {
 //also inits blend shape data values
 void SubdivMeshInstance3D::_init_cached_data_array() {
 	cached_data_array.clear();
+	blend_shape_names.clear();
+	blend_shape_values.clear();
 	if (get_mesh().is_valid()) {
-		for (int surface_idx; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
+		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
 			cached_data_array.push_back(get_mesh()->surface_get_data_arrays(surface_idx));
 		}
 		if (get_mesh()->get_blend_shape_data_count() != blend_shape_names.size()) {
-			blend_shape_names.clear();
-			blend_shape_values.clear();
 			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_data_count(); blend_shape_idx++) {
 				blend_shape_names.insert(get_mesh()->_get_blend_shape_name(blend_shape_idx), blend_shape_idx);
 				blend_shape_values.push_back(0);
