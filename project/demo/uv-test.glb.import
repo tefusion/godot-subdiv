@@ -3,18 +3,19 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bny8ojowjhmo0"
-path="res://.godot/imported/uv_test.glb-c94f92cac1b07af644378ecb59b9bf7f.scn"
+uid="uid://d3s7yhqnh7sd1"
+path="res://.godot/imported/uv-test.glb-d58165737ff3fad9ad17930412a7622f.scn"
 
 [deps]
 
-source_file="res://demo/uv_test.glb"
-dest_files=["res://.godot/imported/uv_test.glb-c94f92cac1b07af644378ecb59b9bf7f.scn"]
+source_file="res://demo/uv-test.glb"
+dest_files=["res://.godot/imported/uv-test.glb-d58165737ff3fad9ad17930412a7622f.scn"]
 
 [params]
 
 nodes/root_type="Node3D"
 nodes/root_name="Scene Root"
+nodes/apply_root_scale=true
 nodes/root_scale=1.0
 meshes/ensure_tangents=true
 meshes/generate_lods=true

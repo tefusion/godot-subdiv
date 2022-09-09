@@ -1,0 +1,14 @@
+[remap]
+
+importer="quad.gltf_importer"
+type="PackedScene"
+uid="uid://bvl48vdcumgtb"
+path="res://.godot/imported/AnimatedMorphCube.glb-6c280e5795b13de9b6e86a05158490f6.scn"
+
+[deps]
+
+source_file="res://demo/AnimatedMorphCube.glb"
+dest_files=["res://.godot/imported/AnimatedMorphCube.glb-6c280e5795b13de9b6e86a05158490f6.scn"]
+
+[params]
+
