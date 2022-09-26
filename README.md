@@ -26,8 +26,9 @@ In Blender you can go in Edit Mode and go Select->Select All by Trait->Faces by 
 
 ## Last tested Godot version
 
-Godot Alpha 16
+[b9a64c77366361a0d45dcdd2b330911efd1eb3f4](https://github.com/godotengine/godot/commit/b9a64c77366361a0d45dcdd2b330911efd1eb3f4)
+Couldn't use beta 1 build cause api changes (planning to release between beta 2 / 3, so don't see the point to adapt to a changed api)
 ## License
 
 [MIT](LICENSE)
-
+Thirdparty notices are in [THIRDPARTY.md](THIRDPARTY.md).

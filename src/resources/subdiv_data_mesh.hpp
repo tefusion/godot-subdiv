@@ -20,7 +20,7 @@ class SubdivDataMesh : public Mesh {
 	virtual int64_t _surface_get_array_len(int64_t index) const override;
 	virtual int64_t _surface_get_array_index_len(int64_t index) const override;
 	virtual Array _surface_get_arrays(int64_t index) const;
-	virtual Array _surface_get_blend_shape_arrays(int64_t index) const override;
+	virtual TypedArray<Array> _surface_get_blend_shape_arrays(int64_t index) const override;
 	virtual Dictionary _surface_get_lods(int64_t index) const override;
 	virtual int64_t _surface_get_format(int64_t index) const override;
 	virtual int64_t _surface_get_primitive_type(int64_t index) const override;

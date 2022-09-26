@@ -135,11 +135,11 @@ jobs:
           scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' -j2
           ls -l project/addons/*/bin/
 
-      - name: Copy README and LICENSE
+      - name: Copy README and Licensing files
         shell: sh
         run: |
           for addon in ${{ github.workspace }}/project/addons/*/; do
-            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/AUTHORS.md' "$addon"
+            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/AUTHORS.md' '${{ github.workspace }}/THIRDPARTY.md' "$addon"
           done
 
       - name: Get version name

@@ -192,7 +192,7 @@ Array SubdivDataMesh::_surface_get_arrays(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, get_surface_count(), Array());
 	return generate_trimesh_arrays(index);
 }
-Array SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t index) const {
+TypedArray<Array> SubdivDataMesh::_surface_get_blend_shape_arrays(int64_t index) const {
 	//TODO:
 	return Array();
 }
