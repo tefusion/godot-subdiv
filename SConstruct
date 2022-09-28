@@ -1,7 +1,16 @@
+"""
+For building basic release do scons target=debug within this folder.
+
+For building tests do scons -Q tests=1
+
+For actual debugging, just start godot how'd you do for debugging. The path for the executable would be something like
+path/to/godot --editor --path ${workspaceFolder}/project 
+"""
 #!/usr/bin/env python
 import os
 from glob import glob
 from pathlib import Path
+
 
 env = SConscript("godot-cpp/SConstruct")
 
@@ -9,6 +18,10 @@ env = SConscript("godot-cpp/SConstruct")
 # env.Append(CPPPATH=["src/", "/usr/include"])
 # env.Append(LIBPATH='/usr/lib')
 # env.Append(LIBS=["osdGPU"])
+vars = Variables(None, ARGUMENTS)
+vars.Add(BoolVariable("tests", "Build tests", False))
+vars.Update(env)
+run_tests = env.get('tests')
 
 # compile local
 thirdparty_dir = "thirdparty/opensubdiv/"
@@ -30,12 +43,26 @@ thirdparty_sources = [
 thirdparty_sources = [thirdparty_dir +
                       file for file in thirdparty_sources]
 
-env.Append(CPPPATH=["src/", thirdparty_dir])
-env.Append(CPPDEFINES=["_USE_MATH_DEFINES"])
+cpp_path = ["src/", thirdparty_dir]
+if(run_tests):
+    cpp_path.append(["thirdparty/doctest", "test/"])
+env.Append(CPPPATH=cpp_path)
+
+cpp_defines = []
+if "CPPDEFINES" in env:
+    cpp_defines = env["CPPDEFINES"]
+cpp_defines.append("_USE_MATH_DEFINES")
+if run_tests:
+    cpp_defines.append("TESTS_ENABLED")
+env.Append(CPPDEFINES=cpp_defines)
 
 sources = Glob("src/*.cpp")
 sources.extend(Glob("src/*/*.cpp"))
 sources.extend(thirdparty_sources)
+
+if (run_tests):
+    sources.extend(Glob("test/*.cpp"))
+    sources.extend(Glob("test/*/*.cpp"))
 
 
 # Find gdextension path even if the directory or extension is renamed.

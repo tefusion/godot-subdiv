@@ -12,13 +12,9 @@
 #include "subdiv_types/subdivision_mesh.hpp"
 
 class SubdivMeshInstance3D : public MeshInstance3D {
-	GDCLASS(SubdivMeshInstance3D, MeshInstance3D)
+	GDCLASS(SubdivMeshInstance3D, MeshInstance3D);
 
-	void set_mesh(const Ref<Mesh> &p_mesh) {
-		ERR_FAIL_COND_MSG(!p_mesh->is_class("SubdivDataMesh"), "This class only supports meshes of the type SubdivDataMesh.");
-		MeshInstance3D::set_mesh(p_mesh);
-	}
-
+private:
 	Ref<SubdivDataMesh> get_mesh() const {
 		return MeshInstance3D::get_mesh();
 	}
@@ -68,7 +64,6 @@ public:
 protected:
 	void _update_skinning();
 	void _update_subdiv_mesh_vertices(int p_surface, const PackedVector3Array &vertex_array);
-	//void _initialize_helper_mesh();
 };
 ;
 

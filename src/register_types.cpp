@@ -13,19 +13,34 @@
 #include "subdiv_types/subdivision_mesh.hpp"
 #include "subdivision_server.hpp"
 
+#include "subdiv_types/quad_subdivider.hpp"
+#include "subdiv_types/subdivider.hpp"
+#ifdef TESTS_ENABLED
+#include "subdiv_test.hpp"
+#endif
+
 using namespace godot;
 
 static SubdivisionServer *_subdivision_server;
 
 void gdextension_initialize(ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+		ClassDB::register_class<Subdivider>();
+		ClassDB::register_class<QuadSubdivider>();
 		ClassDB::register_class<SubdivisionServer>();
 		ClassDB::register_class<SubdivDataMesh>();
 		ClassDB::register_class<SubdivMeshInstance3D>();
 		ClassDB::register_class<SubdivisionMesh>();
 		ClassDB::register_class<GLTFQuadImporter>();
+
 		_subdivision_server = memnew(SubdivisionServer);
 		Engine::get_singleton()->register_singleton("SubdivisionServer", _subdivision_server);
+
+#ifdef TESTS_ENABLED
+		ClassDB::register_class<SubdivTest>();
+		SubdivTest subdiv_test;
+		subdiv_test.run_tests();
+#endif
 	}
 }
 
