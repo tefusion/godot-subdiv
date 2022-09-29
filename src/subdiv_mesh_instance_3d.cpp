@@ -1,3 +1,26 @@
+/*
+Copyright (c) 2007-2022 Juan Linietsky, Ariel Manzur.
+Copyright (c) 2014-2022 Godot Engine contributors (cf. AUTHORS.md).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #include "subdiv_mesh_instance_3d.hpp"
 #include "godot_cpp/classes/ref.hpp"
 #include "godot_cpp/classes/rendering_server.hpp"
@@ -12,31 +35,12 @@
 //editor functions
 void SubdivMeshInstance3D::_notification(int p_what) {
 	switch (p_what) {
-		case 13: { //NOTIFICATION_READY
-			Callable callable = Callable(this, "_check_mesh_instance_changes");
-			this->connect("property_list_changed", Callable(this, "_check_mesh_instance_changes"));
-			break;
-		}
-		case 10: { //NOTIFICATION_ENTER_TREE
-			_init_cached_data_array();
+		case NOTIFICATION_ENTER_TREE: {
 			_resolve_skeleton_path();
-
-			break;
-		}
-		//FIXME: notification enter tree was too late for surface materials to create subdiv mesh, this solution isn't best cause parented!=in scene
-		case 18: { //NOTIFICATION_PARENTED
 			_update_subdiv();
 			set_base(subdiv_mesh->get_rid());
 			update_gizmos();
-
-			break;
-		}
-		case 19: { //NOTIFIACTION_UNPARENTED
-			if (subdiv_mesh) {
-				SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
-			}
-			subdiv_mesh = NULL;
-		}
+		} break;
 	}
 }
 
@@ -79,15 +83,74 @@ bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value)
 }
 
 //start of non editor stuff
+void SubdivMeshInstance3D::set_mesh(const Ref<TopologyDataMesh> &p_mesh) {
+	mesh = p_mesh;
+	_init_cached_data_array();
+	//_initialize_helper_mesh();
+	if (is_inside_tree()) {
+		_update_subdiv();
+		set_base(subdiv_mesh->get_rid());
+		update_gizmos();
+	}
+}
+
+Ref<TopologyDataMesh> SubdivMeshInstance3D::get_mesh() const {
+	return mesh;
+}
+
+void SubdivMeshInstance3D::set_skin(const Ref<Skin> &p_skin) {
+	skin_internal = p_skin;
+	skin = p_skin;
+	if (!is_inside_tree()) {
+		return;
+	}
+	_resolve_skeleton_path();
+}
+Ref<Skin> SubdivMeshInstance3D::get_skin() const {
+	return skin;
+}
+
+void SubdivMeshInstance3D::set_surface_material(int p_idx, const Ref<Material> &p_material) {
+	ERR_FAIL_COND(p_idx < 0);
+	if (p_idx >= surface_materials.size()) {
+		surface_materials.resize(p_idx + 1);
+	}
+
+	surface_materials.write[p_idx] = p_material;
+}
+Ref<Material> SubdivMeshInstance3D::get_surface_material(int p_idx) const {
+	ERR_FAIL_COND_V(p_idx < 0, Ref<Material>());
+	if (p_idx >= surface_materials.size()) {
+		return Ref<Material>();
+	}
+	return surface_materials[p_idx];
+}
+
+void SubdivMeshInstance3D::set_skeleton_path(const NodePath &p_path) {
+	if (is_inside_tree()) {
+		Skeleton3D *skeleton = get_node<Skeleton3D>(skeleton_path);
+		if (skeleton) {
+			Callable callable = Callable(this, "_update_skinning");
+			if (skeleton->is_connected("pose_updated", callable)) {
+				skeleton->disconnect("pose_updated", callable);
+			}
+		}
+		_resolve_skeleton_path();
+	}
+
+	skeleton_path = p_path;
+}
+
+NodePath SubdivMeshInstance3D::get_skeleton_path() const {
+	return skeleton_path;
+}
+
 void SubdivMeshInstance3D::set_subdiv_level(int p_level) {
 	ERR_FAIL_COND(p_level < 0);
 	subdiv_level = p_level;
 
 	if (is_inside_tree()) {
 		_update_subdiv();
-		if (skin_ref.is_valid()) {
-			_update_skinning();
-		}
 	}
 }
 
@@ -111,22 +174,19 @@ void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_valu
 	if (is_inside_tree()) {
 		ERR_FAIL_COND(cached_data_array.is_empty());
 		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
-			const Array &blend_shape_offset = get_mesh()->surface_get_single_blend_shape_data_array(surface_idx, p_blend_shape);
-			const Array &base_shape = get_mesh()->surface_get_data_arrays(surface_idx);
-			const PackedVector3Array &blend_shape_vertex_offsets = blend_shape_offset[SubdivDataMesh::ARRAY_VERTEX];
+			const Array &blend_shape_offset = get_mesh()->surface_get_single_blend_shape_array(surface_idx, p_blend_shape);
+			const Array &base_shape = get_mesh()->surface_get_arrays(surface_idx);
+			const PackedVector3Array &blend_shape_vertex_offsets = blend_shape_offset[TopologyDataMesh::ARRAY_VERTEX];
 			Array &target_surface = cached_data_array.write[surface_idx];
-			PackedVector3Array surface_vertex_array = target_surface[SubdivDataMesh::ARRAY_VERTEX]; //maybe reference, array makes that hard
+			PackedVector3Array surface_vertex_array = target_surface[TopologyDataMesh::ARRAY_VERTEX]; //maybe reference, array makes that hard
 			ERR_FAIL_COND(surface_vertex_array.size() != blend_shape_vertex_offsets.size());
 			float offset = p_value - last_value;
 			for (int vertex_idx = 0; vertex_idx < surface_vertex_array.size(); vertex_idx++) {
 				surface_vertex_array[vertex_idx] += offset * (blend_shape_vertex_offsets[vertex_idx]);
 			}
-			target_surface[SubdivDataMesh::ARRAY_VERTEX] = surface_vertex_array;
+			target_surface[TopologyDataMesh::ARRAY_VERTEX] = surface_vertex_array;
 		}
 		_update_subdiv();
-		if (skin_ref.is_valid()) {
-			_update_skinning();
-		}
 	}
 }
 
@@ -156,15 +216,15 @@ void SubdivMeshInstance3D::_update_skinning() {
 	int surface_count = get_mesh()->get_surface_count();
 
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-		int32_t format = get_mesh()->_surface_get_format(surface_index);
+		int32_t format = get_mesh()->surface_get_format(surface_index);
 		ERR_CONTINUE(!(format & Mesh::ARRAY_FORMAT_BONES) || !(format & Mesh::ARRAY_FORMAT_WEIGHTS));
 		bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
 		int weights_per_vert = double_bone_weights ? 8 : 4;
 
 		Array mesh_arrays = _get_cached_data_array(surface_index);
-		PackedVector3Array vertex_array = mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
-		const PackedInt32Array &bones_array = mesh_arrays[SubdivDataMesh::ARRAY_BONES];
-		const PackedFloat32Array &weights_array = mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS];
+		PackedVector3Array vertex_array = mesh_arrays[TopologyDataMesh::ARRAY_VERTEX];
+		const PackedInt32Array &bones_array = mesh_arrays[TopologyDataMesh::ARRAY_BONES];
+		const PackedFloat32Array &weights_array = mesh_arrays[TopologyDataMesh::ARRAY_WEIGHTS];
 
 		ERR_FAIL_COND(bones_array.size() != weights_array.size() || bones_array.size() != vertex_array.size() * 4);
 
@@ -195,15 +255,14 @@ void SubdivMeshInstance3D::_update_skinning() {
 //calls subdiv mesh function to rerun subdivision with custom vertex array
 void SubdivMeshInstance3D::_update_subdiv_mesh_vertices(int p_surface, const PackedVector3Array &vertex_array) {
 	ERR_FAIL_COND(vertex_array.size() != get_mesh()->surface_get_length(p_surface));
-	const PackedInt32Array &index_array = get_mesh()->surface_get_data_arrays(p_surface)[SubdivDataMesh::ARRAY_INDEX];
+	const PackedInt32Array &index_array = get_mesh()->surface_get_arrays(p_surface)[TopologyDataMesh::ARRAY_INDEX];
 	subdiv_mesh->update_subdivision_vertices(p_surface, vertex_array, index_array);
 }
 
 void SubdivMeshInstance3D::_resolve_skeleton_path() {
 	Ref<SkinReference> new_skin_reference;
-	if (!get_skeleton_path().is_empty()) {
-		Skeleton3D *skeleton = get_node<Skeleton3D>(get_skeleton_path());
-		skin_skeleton_path = get_skeleton_path();
+	if (!skeleton_path.is_empty()) {
+		Skeleton3D *skeleton = get_node<Skeleton3D>(skeleton_path);
 		if (skeleton) {
 			if (skin_internal.is_null()) {
 				new_skin_reference = skeleton->register_skin(skeleton->create_skin_from_rest_transforms());
@@ -220,7 +279,7 @@ void SubdivMeshInstance3D::_resolve_skeleton_path() {
 
 	if (skin_ref.is_valid()) {
 		RenderingServer::get_singleton()->instance_attach_skeleton(get_instance(), skin_ref->get_skeleton());
-		Skeleton3D *skeleton = get_node<Skeleton3D>(get_skeleton_path());
+		Skeleton3D *skeleton = get_node<Skeleton3D>(skeleton_path);
 		if (skeleton) {
 			Callable callable = Callable(this, "_update_skinning");
 			if (!skeleton->is_connected("pose_updated", callable)) {
@@ -233,7 +292,7 @@ void SubdivMeshInstance3D::_resolve_skeleton_path() {
 }
 
 void SubdivMeshInstance3D::_update_subdiv() {
-	if (!get_mesh().is_valid()) {
+	if (get_mesh().is_null() && subdiv_mesh) {
 		subdiv_mesh->clear();
 		return;
 	}
@@ -243,26 +302,16 @@ void SubdivMeshInstance3D::_update_subdiv() {
 		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(get_mesh(), subdiv_level));
 	} else {
 		subdiv_mesh->_update_subdivision(get_mesh(), subdiv_level, cached_data_array);
-	}
-	if (skin_ref.is_valid()) {
-		_update_skinning();
-	}
-}
-
-void SubdivMeshInstance3D::_check_mesh_instance_changes() {
-	if (!get_mesh().is_valid() || get_mesh()->get_rid() != subdiv_mesh->source_mesh) {
-		_init_cached_data_array();
-		_update_subdiv();
-	} else if (skin_skeleton_path != get_skeleton_path()) {
-		_resolve_skeleton_path();
-		_update_skinning();
+		if (skin_ref.is_valid()) { //would throw num_bones<=0 if used outside else
+			_update_skinning();
+		}
 	}
 }
 
-//returns mesh->surface_get_data_arrays if cached_data_array empty
+//returns mesh->surface_get_arrays if cached_data_array empty
 Array SubdivMeshInstance3D::_get_cached_data_array(int p_surface) const {
 	if (cached_data_array.size() == 0) {
-		return get_mesh()->surface_get_data_arrays(p_surface);
+		return get_mesh()->surface_get_arrays(p_surface);
 	} else {
 		ERR_FAIL_INDEX_V(p_surface, cached_data_array.size(), Array());
 		return cached_data_array[p_surface];
@@ -276,11 +325,11 @@ void SubdivMeshInstance3D::_init_cached_data_array() {
 	blend_shape_values.clear();
 	if (get_mesh().is_valid()) {
 		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
-			cached_data_array.push_back(get_mesh()->surface_get_data_arrays(surface_idx));
+			cached_data_array.push_back(get_mesh()->surface_get_arrays(surface_idx));
 		}
-		if (get_mesh()->get_blend_shape_data_count() != blend_shape_names.size()) {
-			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_data_count(); blend_shape_idx++) {
-				blend_shape_names.insert(get_mesh()->_get_blend_shape_name(blend_shape_idx), blend_shape_idx);
+		if (get_mesh()->get_blend_shape_count() != blend_shape_names.size()) {
+			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_count(); blend_shape_idx++) {
+				blend_shape_names.insert(get_mesh()->get_blend_shape_name(blend_shape_idx), blend_shape_idx);
 				blend_shape_values.push_back(0);
 			}
 		}
@@ -293,16 +342,27 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_mesh", "mesh"), &SubdivMeshInstance3D::set_mesh);
 	ClassDB::bind_method(D_METHOD("get_mesh"), &SubdivMeshInstance3D::get_mesh);
 
+	ClassDB::bind_method(D_METHOD("set_skin"), &SubdivMeshInstance3D::set_skin);
+	ClassDB::bind_method(D_METHOD("get_skin"), &SubdivMeshInstance3D::get_skin);
+
+	ClassDB::bind_method(D_METHOD("set_skeleton_path"), &SubdivMeshInstance3D::set_skeleton_path);
+	ClassDB::bind_method(D_METHOD("get_skeleton_path"), &SubdivMeshInstance3D::get_skeleton_path);
+
 	ClassDB::bind_method(D_METHOD("set_subdiv_level"), &SubdivMeshInstance3D::set_subdiv_level);
 	ClassDB::bind_method(D_METHOD("get_subdiv_level"), &SubdivMeshInstance3D::get_subdiv_level);
 
 	ClassDB::bind_method(D_METHOD("_update_skinning"), &SubdivMeshInstance3D::_update_skinning);
-	ClassDB::bind_method(D_METHOD("_check_mesh_instance_changes"), &SubdivMeshInstance3D::_check_mesh_instance_changes);
 
 	ClassDB::bind_method(D_METHOD("get_blend_shape_value", "blend_shape_idx"), &SubdivMeshInstance3D::get_blend_shape_value);
 	ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
 
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "mesh", PROPERTY_HINT_RESOURCE_TYPE, "TopologyDataMesh"), "set_mesh", "get_mesh");
+	ADD_GROUP("Skeleton", "");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "skin", PROPERTY_HINT_RESOURCE_TYPE, "Skin"), "set_skin", "get_skin");
+	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "skeleton_path", PROPERTY_HINT_NODE_PATH_VALID_TYPES, "Skeleton3D"), "set_skeleton_path", "get_skeleton_path");
+	ADD_GROUP("Subdivision", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");
+	ADD_GROUP("", "");
 	ADD_GROUP("Blend Shapes", "");
 }
 

@@ -1,4 +1,4 @@
-[gd_resource type="SubdivDataMesh" load_steps=2 format=3 uid="uid://dsecwxsg35gha"]
+[gd_resource type="TopologyDataMesh" load_steps=2 format=3 uid="uid://dsecwxsg35gha"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6maq1"]
 

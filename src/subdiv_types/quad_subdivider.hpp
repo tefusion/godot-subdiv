@@ -20,6 +20,8 @@ protected:
 			const int32_t p_level, const bool face_varying_data) override;
 	virtual PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) override;
 	virtual Array _get_triangle_arrays() const override;
+	virtual Vector<int> _get_face_vertex_count() const override;
+	virtual Array _get_direct_triangle_arrays() const override;
 };
 
 #endif

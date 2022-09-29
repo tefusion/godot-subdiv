@@ -1,6 +1,7 @@
 [remap]
 
-importer="quad.gltf_importer"
+importer="scene"
+importer_version=1
 type="PackedScene"
 uid="uid://bvl48vdcumgtb"
 path="res://.godot/imported/AnimatedMorphCube.glb-6c280e5795b13de9b6e86a05158490f6.scn"
@@ -12,3 +13,17 @@ dest_files=["res://.godot/imported/AnimatedMorphCube.glb-6c280e5795b13de9b6e86a0
 
 [params]
 
+nodes/root_type="Node3D"
+nodes/root_name="Scene Root"
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+meshes/ensure_tangents=true
+meshes/generate_lods=true
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+import_script/path="res://addons/godot_subdiv/quad_converter_post_import.gd"
+_subresources={}

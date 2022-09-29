@@ -11,7 +11,7 @@
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/vector.hpp"
 
-#include "resources/subdiv_data_mesh.hpp"
+#include "resources/topology_data_mesh.hpp"
 
 using namespace godot;
 
@@ -34,8 +34,8 @@ public:
 	~SubdivisionMesh();
 
 	RID get_rid() const { return subdiv_mesh; }
-	void update_subdivision(Ref<SubdivDataMesh> p_mesh, int p_level);
-	void _update_subdivision(Ref<SubdivDataMesh> p_mesh, int p_level, const Vector<Array> &cached_data_arrays);
+	void update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level);
+	void _update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level, const Vector<Array> &cached_data_arrays);
 	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array);
 	void clear();
 

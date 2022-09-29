@@ -41,7 +41,7 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	SubdivDataMesh *quad_mesh = memnew(SubdivDataMesh);
+	TopologyDataMesh *quad_mesh = memnew(TopologyDataMesh);
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
@@ -62,7 +62,7 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	}
 	//actually add blendshapes to data
 	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
-		quad_mesh->_add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
+		quad_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
@@ -86,7 +86,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	Ref<ImporterMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	SubdivDataMesh *quad_mesh = memnew(SubdivDataMesh);
+	TopologyDataMesh *quad_mesh = memnew(TopologyDataMesh);
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
@@ -111,7 +111,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	}
 	//actually add blendshapes to data
 	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
-		quad_mesh->_add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
+		quad_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
 	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
@@ -138,20 +138,20 @@ Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &sur
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	Array quad_surface_arrays;
-	quad_surface_arrays.resize(SubdivDataMesh::ARRAY_MAX);
-	quad_surface_arrays[SubdivDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
-	quad_surface_arrays[SubdivDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
+	quad_surface_arrays.resize(TopologyDataMesh::ARRAY_MAX);
+	quad_surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
+	quad_surface_arrays[TopologyDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
 	// quad_surface_arrays[Mesh::ARRAY_TANGENT]
-	quad_surface_arrays[SubdivDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
-	quad_surface_arrays[SubdivDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
-	quad_surface_arrays[SubdivDataMesh::ARRAY_INDEX] = quad_surface.index_array;
+	quad_surface_arrays[TopologyDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
+	quad_surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
+	quad_surface_arrays[TopologyDataMesh::ARRAY_INDEX] = quad_surface.index_array;
 	if (has_uv) {
 		PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
-		quad_surface_arrays[SubdivDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
-		quad_surface_arrays[SubdivDataMesh::ARRAY_UV_INDEX] = uv_index_array;
+		quad_surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
+		quad_surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = uv_index_array;
 	} else { //this is to avoid issues with casting null to Array when using these as reference
-		quad_surface_arrays[SubdivDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
-		quad_surface_arrays[SubdivDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
+		quad_surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
+		quad_surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
 	}
 
 	return quad_surface_arrays;
@@ -306,8 +306,8 @@ Array GLTFQuadImporter::_generate_packed_blend_shapes(const Array &tri_blend_sha
 	packed_blend_shape_array.resize(tri_blend_shapes.size());
 	for (int blend_shape_idx = 0; blend_shape_idx < tri_blend_shapes.size(); blend_shape_idx++) {
 		Array single_blend_shape_array;
-		single_blend_shape_array.resize(SubdivDataMesh::ARRAY_MAX);
-		single_blend_shape_array[SubdivDataMesh::ARRAY_VERTEX] = packed_vertex_arrays.get(blend_shape_idx);
+		single_blend_shape_array.resize(TopologyDataMesh::ARRAY_MAX);
+		single_blend_shape_array[TopologyDataMesh::ARRAY_VERTEX] = packed_vertex_arrays.get(blend_shape_idx);
 		packed_blend_shape_array[blend_shape_idx] = single_blend_shape_array;
 	}
 	return packed_blend_shape_array;

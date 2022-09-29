@@ -3,8 +3,6 @@
 #include "doctest.h"
 #include "godot_cpp/classes/resource_loader.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "resources/subdiv_data_mesh.hpp"
-#include "subdiv_types/quad_subdivider.hpp"
 
 int SubdivTest::run_tests() {
 	doctest::Context ctx;

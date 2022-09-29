@@ -1,5 +1,27 @@
+/*
+Copyright (c) 2007-2022 Juan Linietsky, Ariel Manzur.
+Copyright (c) 2014-2022 Godot Engine contributors (cf. AUTHORS.md).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #ifndef SUBDIV_MESH_INSTANCE_3D_H
-#define QUAD_MESH_INSTANCE_3D_H
+#define SUBDIV_MESH_INSTANCE_3D_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -8,23 +30,22 @@
 #include "godot_cpp/classes/mesh_instance3d.hpp"
 #include "godot_cpp/classes/skin.hpp"
 #include "godot_cpp/classes/skin_reference.hpp"
-#include "resources/subdiv_data_mesh.hpp"
+#include "resources/topology_data_mesh.hpp"
 #include "subdiv_types/subdivision_mesh.hpp"
 
-class SubdivMeshInstance3D : public MeshInstance3D {
-	GDCLASS(SubdivMeshInstance3D, MeshInstance3D);
-
-private:
-	Ref<SubdivDataMesh> get_mesh() const {
-		return MeshInstance3D::get_mesh();
-	}
+class SubdivMeshInstance3D : public GeometryInstance3D {
+	GDCLASS(SubdivMeshInstance3D, GeometryInstance3D)
 
 protected:
+	Ref<TopologyDataMesh> mesh;
 	SubdivisionMesh *subdiv_mesh;
-	int32_t subdiv_level;
-	Ref<SkinReference> skin_ref; //godot cpp currently does not give access to protected skin ref variable
+	Ref<Skin> skin;
 	Ref<Skin> skin_internal;
-	NodePath skin_skeleton_path; //needed for checking changes
+	Ref<SkinReference> skin_ref;
+	NodePath skeleton_path = NodePath("..");
+
+	Vector<Ref<Material>> surface_materials;
+	int32_t subdiv_level;
 
 	Vector<Array> cached_data_array; //array of surfaces after blend shapes are applied, if empty (if no blendshapes) getter will return normal data array
 	HashMap<StringName, int> blend_shape_names;
@@ -32,7 +53,6 @@ protected:
 
 	void _resolve_skeleton_path();
 	void _update_subdiv();
-	void _check_mesh_instance_changes(); //function that gets called when property list changes
 	Array _get_cached_data_array(int p_surface) const;
 	void _init_cached_data_array();
 
@@ -44,19 +64,23 @@ protected:
 	bool _get(const StringName &p_name, Variant &return_value) const;
 
 public:
-	int32_t get_subdiv_level();
+	void set_mesh(const Ref<TopologyDataMesh> &p_mesh);
+	Ref<TopologyDataMesh> get_mesh() const;
+
+	void set_skin(const Ref<Skin> &p_skin);
+	Ref<Skin> get_skin() const;
+
+	void set_surface_material(int p_idx, const Ref<Material> &p_material);
+	Ref<Material> get_surface_material(int p_idx) const;
+
+	void set_skeleton_path(const NodePath &p_path);
+	NodePath get_skeleton_path() const;
+
 	void set_subdiv_level(int p_level);
+	int32_t get_subdiv_level();
 
 	float get_blend_shape_value(int p_blend_shape) const;
 	void set_blend_shape_value(int p_blend_shape, float p_value);
-
-	//TODO: remove if MeshInstance gives access to skin ref
-	NodePath get_skeleton_path() {
-		return MeshInstance3D::get_skeleton_path();
-	};
-	Ref<Skin> get_skin() const {
-		return MeshInstance3D::get_skin();
-	};
 
 	SubdivMeshInstance3D();
 	~SubdivMeshInstance3D();

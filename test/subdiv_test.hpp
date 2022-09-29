@@ -4,8 +4,6 @@
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
 
-//#include <godot_cpp/classes/mesh.hpp>
-
 #include "godot_cpp/classes/ref_counted.hpp"
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/vector.hpp"

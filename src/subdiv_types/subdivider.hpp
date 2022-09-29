@@ -54,7 +54,10 @@ protected:
 	virtual void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
 			const int32_t p_level, const bool face_varying_data);
 	virtual PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
+	virtual Vector<int> _get_face_vertex_count() const;
 	virtual Array _get_triangle_arrays() const;
+	//might be needed if actual topology data with not just quads OR triangles is used, otherwise just calls _get_triangle_arrays
+	virtual Array _get_direct_triangle_arrays() const;
 
 public:
 	Array get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //Returns triangle faces for rendering

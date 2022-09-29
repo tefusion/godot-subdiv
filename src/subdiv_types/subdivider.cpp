@@ -4,7 +4,7 @@
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/variant/builtin_types.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "resources/subdiv_data_mesh.hpp"
+#include "resources/topology_data_mesh.hpp"
 
 //debug
 // #include <chrono>
@@ -14,15 +14,15 @@ using namespace OpenSubdiv;
 typedef Far::TopologyDescriptor Descriptor;
 
 Subdivider::TopologyData::TopologyData(const Array &p_mesh_arrays, int32_t p_format) {
-	vertex_array = p_mesh_arrays[SubdivDataMesh::ARRAY_VERTEX];
-	index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_INDEX];
+	vertex_array = p_mesh_arrays[TopologyDataMesh::ARRAY_VERTEX];
+	index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_INDEX];
 	if (p_format & Mesh::ARRAY_FORMAT_TEX_UV) {
-		uv_array = p_mesh_arrays[SubdivDataMesh::ARRAY_TEX_UV];
-		uv_index_array = p_mesh_arrays[SubdivDataMesh::ARRAY_UV_INDEX];
+		uv_array = p_mesh_arrays[TopologyDataMesh::ARRAY_TEX_UV];
+		uv_index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_UV_INDEX];
 	}
 	if (p_format & Mesh::ARRAY_FORMAT_BONES && p_format & Mesh::ARRAY_FORMAT_WEIGHTS) {
-		bones_array = p_mesh_arrays[SubdivDataMesh::ARRAY_BONES];
-		weights_array = p_mesh_arrays[SubdivDataMesh::ARRAY_WEIGHTS];
+		bones_array = p_mesh_arrays[TopologyDataMesh::ARRAY_BONES];
+		weights_array = p_mesh_arrays[TopologyDataMesh::ARRAY_WEIGHTS];
 	}
 
 	index_count = index_array.size();
@@ -92,8 +92,7 @@ Descriptor Subdivider::_create_topology_descriptor(const int num_channels, Vecto
 	desc.numFaces = topology_data.face_count;
 	desc.vertIndicesPerFace = topology_data.index_array.ptr();
 
-	subdiv_face_vertex_count.resize(topology_data.face_count);
-	subdiv_face_vertex_count.fill(4);
+	subdiv_face_vertex_count = _get_face_vertex_count();
 
 	desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
 
@@ -163,24 +162,29 @@ Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int3
 }
 
 Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+	ERR_FAIL_COND_V(p_level <= 0, Array());
 	subdivide(p_arrays, p_level, p_format, calculate_normals);
 	Array arr;
-	arr.resize(SubdivDataMesh::ARRAY_MAX);
-	arr[SubdivDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
-	arr[SubdivDataMesh::ARRAY_NORMAL] = topology_data.normal_array;
-	arr[SubdivDataMesh::ARRAY_TEX_UV] = topology_data.uv_array;
-	arr[SubdivDataMesh::ARRAY_UV_INDEX] = topology_data.uv_index_array;
-	arr[SubdivDataMesh::ARRAY_INDEX] = topology_data.index_array;
-	arr[SubdivDataMesh::ARRAY_BONES] = topology_data.bones_array;
-	arr[SubdivDataMesh::ARRAY_WEIGHTS] = topology_data.weights_array;
+	arr.resize(TopologyDataMesh::ARRAY_MAX);
+	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
+	arr[TopologyDataMesh::ARRAY_NORMAL] = topology_data.normal_array;
+	arr[TopologyDataMesh::ARRAY_TEX_UV] = topology_data.uv_array;
+	arr[TopologyDataMesh::ARRAY_UV_INDEX] = topology_data.uv_index_array;
+	arr[TopologyDataMesh::ARRAY_INDEX] = topology_data.index_array;
+	arr[TopologyDataMesh::ARRAY_BONES] = topology_data.bones_array;
+	arr[TopologyDataMesh::ARRAY_WEIGHTS] = topology_data.weights_array;
 	return arr;
 }
 
 void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	ERR_FAIL_COND(p_level <= 0);
+	ERR_FAIL_COND(p_level < 0);
 	bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	topology_data = TopologyData(p_arrays, p_format);
+	if (p_level == 0) {
+		return;
+	}
+
 	const int num_channels = use_uv; //TODO: maybe add channel for tex uv 2
 	const bool face_varying_data = num_channels > 0;
 
@@ -207,6 +211,13 @@ PackedVector3Array Subdivider::_calculate_smooth_normals(const PackedVector3Arra
 	return PackedVector3Array();
 }
 Array Subdivider::_get_triangle_arrays() const {
+	return Array();
+}
+
+Vector<int> Subdivider::_get_face_vertex_count() const {
+	return Vector<int>();
+}
+Array Subdivider::_get_direct_triangle_arrays() const {
 	return Array();
 }
 

@@ -113,6 +113,16 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 	return subdiv_triangle_arrays;
 }
 
+Vector<int> QuadSubdivider::_get_face_vertex_count() const {
+	Vector<int> face_vertex_count;
+	face_vertex_count.resize(topology_data.face_count);
+	face_vertex_count.fill(4);
+	return face_vertex_count;
+};
+Array QuadSubdivider::_get_direct_triangle_arrays() const {
+	return _get_triangle_arrays();
+};
+
 void QuadSubdivider::_bind_methods() {
 }
 

@@ -2,37 +2,13 @@
 
 Godot-subdiv uses the following third-party sources:
 
-1. godotengine/godot-cpp - MIT License - https://github.com/godotengine/godot-cpp/tree/e40aa112ee8e784f21c86083095b391672c709b6
-2. OpenSubdiv -  Modified Apache 2.0 License - https://github.com/PixarAnimationStudios/OpenSubdiv/tree/ff76e0f2dc9c9202b7d2f965f264bfd6f41866d5
-3. doctest - MIT License - https://github.com/doctest/doctest/releases/tag/v2.4.9 (not included in release builds)
+1. OpenSubdiv -  Modified Apache 2.0 License - https://github.com/PixarAnimationStudios/OpenSubdiv/tree/ff76e0f2dc9c9202b7d2f965f264bfd6f41866d5
+2. godotengine/godot-cpp - MIT License - https://github.com/godotengine/godot-cpp/tree/e40aa112ee8e784f21c86083095b391672c709b6
+3. godotengine/godot - MIT License - https://github.com/godotengine/godot/tree/361d9b514ef969a44f596c0bab9c86d9521379f3 (Many SubdivMeshInstance3D and TopologyDataMesh features are copied from MeshInstance3D and ArrayMesh)
+4. doctest - MIT License - https://github.com/doctest/doctest/releases/tag/v2.4.9 (not included in release builds)
+
+
 ## License Texts
-
-### godotengine/godot-cpp
-
-```
-# MIT License
-
-Copyright (c) 2017-2022 Godot Engine contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-```
 
 ### PixarAnimationStudios/OpenSubdiv
 
@@ -212,6 +188,59 @@ SOFTWARE.
       of your accepting any such warranty or additional liability.
 
 ```
+### godotengine/godot-cpp
+
+```
+# MIT License
+
+Copyright (c) 2017-2022 Godot Engine contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
+### godotengine/godot
+
+```
+
+Copyright (c) 2007-2022 Juan Linietsky, Ariel Manzur.
+Copyright (c) 2014-2022 Godot Engine contributors (cf. AUTHORS.md).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
 
 ### doctest/doctest
 
@@ -240,3 +269,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ```
+
