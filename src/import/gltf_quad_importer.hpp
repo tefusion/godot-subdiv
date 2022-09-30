@@ -15,6 +15,13 @@ protected:
 	static void
 	_bind_methods();
 
+public:
+	enum ImportMode {
+		SUBDIV_MESHINSTANCE = 0,
+		BAKED_SUBDIV_MESH = 1,
+		ARRAY_MESH = 2
+	};
+
 private:
 	struct QuadSurfaceData {
 		godot::PackedVector3Array vertex_array;
@@ -49,7 +56,9 @@ public:
 	GLTFQuadImporter();
 	~GLTFQuadImporter();
 	void convert_meshinstance_to_quad(Object *p_meshinstance);
-	void convert_importer_meshinstance_to_quad(Object *p_meshinstance);
+	void convert_importer_meshinstance_to_quad(Object *p_meshinstance, ImportMode import_mode, int32_t subdiv_level);
 };
+
+VARIANT_ENUM_CAST(GLTFQuadImporter, ImportMode);
 
 #endif

@@ -8,13 +8,15 @@
 #include "godot_cpp/godot.hpp"
 
 #include "import/gltf_quad_importer.hpp"
+#include "nodes/baked_subdiv_mesh_instance_3d.hpp"
+#include "nodes/subdiv_mesh_instance_3d.hpp"
+#include "resources/baked_subdiv_mesh.hpp"
 #include "resources/topology_data_mesh.hpp"
-#include "subdiv_mesh_instance_3d.hpp"
-#include "subdiv_types/subdivision_mesh.hpp"
-#include "subdivision_server.hpp"
+#include "subdivision/subdivision_mesh.hpp"
+#include "subdivision/subdivision_server.hpp"
 
-#include "subdiv_types/quad_subdivider.hpp"
-#include "subdiv_types/subdivider.hpp"
+#include "subdivision/quad_subdivider.hpp"
+#include "subdivision/subdivider.hpp"
 #ifdef TESTS_ENABLED
 #include "subdiv_test.hpp"
 #endif
@@ -28,10 +30,15 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 		ClassDB::register_class<Subdivider>();
 		ClassDB::register_class<QuadSubdivider>();
 		ClassDB::register_class<SubdivisionServer>();
-		ClassDB::register_class<SubdivMeshInstance3D>();
 		ClassDB::register_class<SubdivisionMesh>();
+
+		ClassDB::register_class<SubdivMeshInstance3D>();
+		ClassDB::register_class<BakedSubdivMeshInstance3D>();
+
 		ClassDB::register_class<GLTFQuadImporter>();
+
 		ClassDB::register_class<TopologyDataMesh>();
+		ClassDB::register_class<BakedSubdivMesh>();
 
 		_subdivision_server = memnew(SubdivisionServer);
 		Engine::get_singleton()->register_singleton("SubdivisionServer", _subdivision_server);

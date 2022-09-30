@@ -102,6 +102,17 @@ int64_t SubdivisionMesh::surface_get_index_array_size(int p_surface) const {
 	return subdiv_index_count[p_surface];
 }
 
+RID SubdivisionMesh::get_rid() const {
+	return subdiv_mesh;
+}
+
+void SubdivisionMesh::set_rid(RID p_rid) {
+	if (subdiv_mesh.is_valid()) {
+		RenderingServer::get_singleton()->free_rid(subdiv_mesh);
+	}
+	subdiv_mesh = p_rid;
+}
+
 void SubdivisionMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rid"), &SubdivisionMesh::get_rid);
 	ClassDB::bind_method(D_METHOD("update_subdivision"), &SubdivisionMesh::update_subdivision);

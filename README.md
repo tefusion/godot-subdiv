@@ -6,9 +6,9 @@
 
 ## Getting Started
 
-For importing a QuadMesh you can select a glb/gltf file **that contained only quads before export** and either change the importer in the import settings to the custom Quad GLTF importer or select the [post import script](project/addons/godot_subdiv/quad_converter_post_import.gd) inside of the importer window.
+For importing a SubdivMeshInstance3D you can select a glb/gltf file **that contained only quads before export** and either change the importer in the import settings to the custom Quad GLTF importer or select the [post import script](project/addons/godot_subdiv/quad_converter_post_import.gd) inside of the importer window.
 
-After that you can just create an Inherited Scene and should see the custom QuadImporterMeshInstance
+After that you can just create an Inherited Scene and should see the custom SubdivMeshInstance3D
 with a subdivison level editor setting. 
 
 
@@ -26,9 +26,9 @@ In Blender you can go in Edit Mode and go Select->Select All by Trait->Faces by 
 
 ## Last tested Godot version
 
-[b9a64c77366361a0d45dcdd2b330911efd1eb3f4](https://github.com/godotengine/godot/commit/b9a64c77366361a0d45dcdd2b330911efd1eb3f4)
-Couldn't use beta 1 build cause api changes (planning to release between beta 2 / 3, so don't see the point to adapt to a changed api)
+Godot 4 Beta 2
 ## License
 
 [MIT](LICENSE)
+
 Thirdparty notices are in [THIRDPARTY.md](THIRDPARTY.md).

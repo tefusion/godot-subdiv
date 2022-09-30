@@ -33,7 +33,8 @@ public:
 	SubdivisionMesh();
 	~SubdivisionMesh();
 
-	RID get_rid() const { return subdiv_mesh; }
+	RID get_rid() const;
+	void set_rid(RID p_rid);
 	void update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level);
 	void _update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level, const Vector<Array> &cached_data_arrays);
 	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array);

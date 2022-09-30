@@ -2,7 +2,7 @@
 
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/hash_set.hpp"
-#include "subdiv_mesh_instance_3d.hpp"
+#include "nodes/subdiv_mesh_instance_3d.hpp"
 
 #include "godot_cpp/classes/array_mesh.hpp"
 #include "godot_cpp/classes/importer_mesh.hpp"
@@ -10,6 +10,8 @@
 #include "godot_cpp/classes/mesh_instance3d.hpp"
 #include "godot_cpp/classes/scene_tree.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
+#include "nodes/baked_subdiv_mesh_instance_3d.hpp"
+#include "resources/baked_subdiv_mesh.hpp"
 
 GLTFQuadImporter::GLTFQuadImporter() {
 }
@@ -20,6 +22,9 @@ GLTFQuadImporter::~GLTFQuadImporter() {
 void GLTFQuadImporter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("convert_importer_meshinstance_to_quad"), &GLTFQuadImporter::convert_importer_meshinstance_to_quad);
 	ClassDB::bind_method(D_METHOD("convert_meshinstance_to_quad", "MeshInstance3D"), &GLTFQuadImporter::convert_meshinstance_to_quad);
+	BIND_ENUM_CONSTANT(SUBDIV_MESHINSTANCE);
+	BIND_ENUM_CONSTANT(BAKED_SUBDIV_MESH);
+	BIND_ENUM_CONSTANT(ARRAY_MESH);
 }
 
 GLTFQuadImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
@@ -65,29 +70,46 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 		quad_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
-	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
+	SubdivMeshInstance3D *subdiv_mesh_instance = memnew(SubdivMeshInstance3D);
 	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
-	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
+	subdiv_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
 	if (!p_meshinstance->get_skin().is_null()) {
-		quad_mesh_instance->set_skin(p_meshinstance->get_skin());
+		subdiv_mesh_instance->set_skin(p_meshinstance->get_skin());
 	}
-	quad_mesh_instance->set_transform(p_meshinstance->get_transform());
+	subdiv_mesh_instance->set_transform(p_meshinstance->get_transform());
 	StringName quad_mesh_instance_name = p_meshinstance->get_name();
-	quad_mesh_instance->set_mesh(quad_mesh);
+	subdiv_mesh_instance->set_mesh(quad_mesh);
 
 	// replace importermeshinstance in scene
-	p_meshinstance->replace_by(quad_mesh_instance, false);
-	quad_mesh_instance->set_name(quad_mesh_instance_name);
+	p_meshinstance->replace_by(subdiv_mesh_instance, false);
+	subdiv_mesh_instance->set_name(quad_mesh_instance_name);
 	p_meshinstance->queue_free();
 }
 
-void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinstance_object) {
+void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinstance_object, ImportMode import_mode, int32_t subdiv_level) {
 	ImporterMeshInstance3D *p_meshinstance = Object::cast_to<ImporterMeshInstance3D>(p_meshinstance_object);
 	Ref<ImporterMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	TopologyDataMesh *quad_mesh = memnew(TopologyDataMesh);
-	quad_mesh->set_name(p_mesh->get_name());
+	//if arraymesh and subdiv_level 0 just normal import
+	if (import_mode == ImportMode::ARRAY_MESH && subdiv_level == 0) {
+		MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
+		Ref<ArrayMesh> array_mesh = memnew(ArrayMesh);
+		array_mesh = p_mesh->get_mesh(array_mesh);
+		mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
+		if (!p_meshinstance->get_skin().is_null()) {
+			mesh_instance->set_skin(p_meshinstance->get_skin());
+		}
+		mesh_instance->set_transform(p_meshinstance->get_transform());
+		StringName mesh_instance_name = p_meshinstance->get_name();
+		mesh_instance->set_mesh(array_mesh);
+		p_meshinstance->replace_by(mesh_instance, false);
+		mesh_instance->set_name(mesh_instance_name);
+		return;
+	}
+
+	TopologyDataMesh *topology_data_mesh = memnew(TopologyDataMesh);
+	topology_data_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
 		//convert actual mesh data to quad
@@ -107,27 +129,56 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		}
 
 		ERR_FAIL_COND(!quad_surface_arrays.size());
-		quad_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index), format);
+		topology_data_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index), format);
 	}
 	//actually add blendshapes to data
 	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
-		quad_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
+		topology_data_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
 	}
 
-	SubdivMeshInstance3D *quad_mesh_instance = memnew(SubdivMeshInstance3D);
-	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
-	quad_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
-	if (!p_meshinstance->get_skin().is_null()) {
-		quad_mesh_instance->set_skin(p_meshinstance->get_skin());
-	}
-	quad_mesh_instance->set_transform(p_meshinstance->get_transform());
-	StringName quad_mesh_instance_name = p_meshinstance->get_name();
-	quad_mesh_instance->set_mesh(quad_mesh);
+	StringName mesh_instance_name = p_meshinstance->get_name();
+	//creates subdiv mesh instance with topologydatamesh
+	if (import_mode == ImportMode::SUBDIV_MESHINSTANCE) {
+		SubdivMeshInstance3D *subdiv_mesh_instance = memnew(SubdivMeshInstance3D);
+		// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
+		subdiv_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
+		if (!p_meshinstance->get_skin().is_null()) {
+			subdiv_mesh_instance->set_skin(p_meshinstance->get_skin());
+		}
+		subdiv_mesh_instance->set_transform(p_meshinstance->get_transform());
+		subdiv_mesh_instance->set_mesh(topology_data_mesh);
 
-	// replace importermeshinstance in scene
-	p_meshinstance->replace_by(quad_mesh_instance, false);
-	quad_mesh_instance->set_name(quad_mesh_instance_name);
-	p_meshinstance->queue_free();
+		subdiv_mesh_instance->set_subdiv_level(subdiv_level);
+
+		// replace importermeshinstance in scene
+		p_meshinstance->replace_by(subdiv_mesh_instance, false);
+		subdiv_mesh_instance->set_name(mesh_instance_name);
+		p_meshinstance->queue_free();
+	} else if (import_mode == ImportMode::BAKED_SUBDIV_MESH) {
+		BakedSubdivMeshInstance3D *subdiv_mesh_instance = memnew(BakedSubdivMeshInstance3D);
+		// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
+		subdiv_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
+		if (!p_meshinstance->get_skin().is_null()) {
+			subdiv_mesh_instance->set_skin(p_meshinstance->get_skin());
+		}
+		subdiv_mesh_instance->set_transform(p_meshinstance->get_transform());
+		StringName quad_mesh_instance_name = p_meshinstance->get_name();
+		BakedSubdivMesh *subdiv_mesh = memnew(BakedSubdivMesh);
+		subdiv_mesh->set_data_mesh(topology_data_mesh);
+		subdiv_mesh_instance->set_mesh(subdiv_mesh);
+		subdiv_mesh->set_subdiv_level(subdiv_level);
+
+		// replace importermeshinstance in scene
+		p_meshinstance->replace_by(subdiv_mesh_instance, false);
+		subdiv_mesh_instance->set_name(quad_mesh_instance_name);
+		p_meshinstance->queue_free();
+	} else if (import_mode == ImportMode::ARRAY_MESH && subdiv_level > 0) {
+		ERR_PRINT("Import baking not implemented yet");
+	}
+
+	else {
+		ERR_PRINT("Import mode doesn't exist");
+	}
 }
 
 Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &surface, int32_t format) {

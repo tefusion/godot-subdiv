@@ -2,8 +2,8 @@
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/classes/surface_tool.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "subdiv_types/subdivision_mesh.hpp"
-#include "subdivision_server.hpp"
+#include "subdivision/subdivision_mesh.hpp"
+#include "subdivision/subdivision_server.hpp"
 
 void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name, int32_t p_format) {
 	ERR_FAIL_COND(p_arrays.size() != TopologyDataMesh::ARRAY_MAX);

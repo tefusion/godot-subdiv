@@ -30,7 +30,7 @@ SOFTWARE.
 
 #include "godot_cpp/classes/node.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "subdivision_server.hpp"
+#include "subdivision/subdivision_server.hpp"
 
 //editor functions
 void SubdivMeshInstance3D::_notification(int p_what) {

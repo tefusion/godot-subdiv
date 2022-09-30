@@ -31,7 +31,9 @@ SOFTWARE.
 #include "godot_cpp/classes/skin.hpp"
 #include "godot_cpp/classes/skin_reference.hpp"
 #include "resources/topology_data_mesh.hpp"
-#include "subdiv_types/subdivision_mesh.hpp"
+#include "subdivision/subdivision_mesh.hpp"
+
+using namespace godot;
 
 class SubdivMeshInstance3D : public GeometryInstance3D {
 	GDCLASS(SubdivMeshInstance3D, GeometryInstance3D)
