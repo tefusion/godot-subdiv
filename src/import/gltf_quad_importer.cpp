@@ -158,7 +158,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		p_meshinstance->replace_by(subdiv_mesh_instance, false);
 		subdiv_mesh_instance->set_name(mesh_instance_name);
 		p_meshinstance->queue_free();
-	} else if (import_mode == ImportMode::ARRAY_MESH) {
+	} else if (import_mode == ImportMode::ARRAY_MESH || import_mode == ImportMode::BAKED_SUBDIV_MESH) {
 		Ref<ImporterMesh> subdiv_importer_mesh;
 		subdiv_importer_mesh.instantiate();
 		{
