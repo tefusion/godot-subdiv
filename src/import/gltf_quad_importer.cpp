@@ -166,16 +166,16 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 			subdiv_mesh.instantiate();
 			subdiv_mesh->set_data_mesh(topology_data_mesh);
 			subdiv_mesh->set_subdiv_level(subdiv_level);
-			for (int64_t blend_shape_idx = 0; blend_shape_idx < subdiv_mesh->_get_blend_shape_count(); blend_shape_idx++) {
-				StringName shape_name = subdiv_mesh->_get_blend_shape_name(blend_shape_idx);
-				subdiv_importer_mesh->add_blend_shape(shape_name);
-			}
+			//for (int64_t blend_shape_idx = 0; blend_shape_idx < subdiv_mesh->_get_blend_shape_count(); blend_shape_idx++) {
+			//	StringName shape_name = subdiv_mesh->_get_blend_shape_name(blend_shape_idx);
+			//	subdiv_importer_mesh->add_blend_shape(shape_name);
+			//}
 			for (int64_t surface_i = 0; surface_i < subdiv_mesh->_get_surface_count(); surface_i++) {
 				Ref<Material> material = subdiv_mesh->_surface_get_material(surface_i);
 				Array blend_shape_arrays;
-				for (int64_t blend_shape_i = 0; blend_shape_i < subdiv_mesh->_get_blend_shape_count(); blend_shape_i++) {
-					blend_shape_arrays.push_back(subdiv_mesh->_surface_get_blend_shape_arrays(blend_shape_i));
-				}
+				//for (int64_t blend_shape_i = 0; blend_shape_i < subdiv_mesh->_get_blend_shape_count(); blend_shape_i++) {
+				//	blend_shape_arrays.push_back(subdiv_mesh->_surface_get_blend_shape_arrays(blend_shape_i));
+				//}
 				subdiv_importer_mesh->add_surface(Mesh::PRIMITIVE_TRIANGLES, subdiv_mesh->_surface_get_arrays(surface_i), blend_shape_arrays, Dictionary(), material, material->get_name(), subdiv_mesh->_surface_get_format(surface_i));
 			}
 		}
