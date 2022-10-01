@@ -209,7 +209,10 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 			}
 		}
 		subdiv_importer_mesh->generate_lods(UtilityFunctions::deg_to_rad(25), UtilityFunctions::deg_to_rad(60), skin_pose_transform_array);
-		Ref<ArrayMesh> array_mesh = subdiv_importer_mesh->get_mesh(Ref<ArrayMesh>());
+		Ref<ImporterMesh> base_mesh;
+		base_mesh.instantiate();
+		// Does this initiation fix a crash?
+		Ref<ArrayMesh> array_mesh = subdiv_importer_mesh->get_mesh(base_mesh);
 		p_meshinstance->set_mesh(array_mesh);
 	} else {
 		ERR_PRINT("Import mode doesn't exist");
