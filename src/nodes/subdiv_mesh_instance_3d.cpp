@@ -256,7 +256,7 @@ void SubdivMeshInstance3D::_update_skinning() {
 void SubdivMeshInstance3D::_update_subdiv_mesh_vertices(int p_surface, const PackedVector3Array &vertex_array) {
 	ERR_FAIL_COND(vertex_array.size() != get_mesh()->surface_get_length(p_surface));
 	const PackedInt32Array &index_array = get_mesh()->surface_get_arrays(p_surface)[TopologyDataMesh::ARRAY_INDEX];
-	subdiv_mesh->update_subdivision_vertices(p_surface, vertex_array, index_array);
+	subdiv_mesh->update_subdivision_vertices(p_surface, vertex_array, index_array, mesh->surface_get_topology_type(p_surface));
 }
 
 void SubdivMeshInstance3D::_resolve_skeleton_path() {

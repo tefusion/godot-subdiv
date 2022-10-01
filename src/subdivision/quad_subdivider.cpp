@@ -4,66 +4,10 @@
 
 using namespace OpenSubdiv;
 
-PackedVector3Array QuadSubdivider::_calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) {
-	PackedVector3Array normals;
-	normals.resize(quad_vertex_array.size());
-	for (int f = 0; f < quad_index_array.size(); f += 4) {
-		// // We will use the first three verts to calculate a normal
-		const Vector3 &p_point1 = quad_vertex_array[quad_index_array[f]];
-		const Vector3 &p_point2 = quad_vertex_array[quad_index_array[f + 1]];
-		const Vector3 &p_point3 = quad_vertex_array[quad_index_array[f + 2]];
-		Vector3 normal_calculated = (p_point1 - p_point3).cross(p_point1 - p_point2);
-		normal_calculated.normalize();
-		for (int n_pos = f; n_pos < f + 4; n_pos++) {
-			int vertexIndex = quad_index_array[n_pos];
-			normals[vertexIndex] += normal_calculated;
-		}
-	}
-	//normalized accumulated normals
-	for (int vertex_index = 0; vertex_index < normals.size(); ++vertex_index) {
-		normals[vertex_index].normalize();
-	}
-	return normals;
-}
-
 OpenSubdiv::Sdc::SchemeType QuadSubdivider::_get_refiner_type() const {
 	return OpenSubdiv::Sdc::SchemeType::SCHEME_CATMARK;
 }
-void QuadSubdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
-		const int32_t p_level, const bool face_varying_data) {
-	PackedInt32Array index_array;
-	PackedInt32Array uv_index_array;
 
-	Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
-	int face_count_out = last_level.GetNumFaces();
-	int uv_index_offset = face_varying_data ? topology_data.uv_count - last_level.GetNumFVarValues(Channels::UV) : -1;
-	int vertex_index_offset = topology_data.vertex_count - last_level.GetNumVertices();
-	for (int face_index = 0; face_index < face_count_out; ++face_index) {
-		int parent_face_index = last_level.GetFaceParentFace(face_index);
-		for (int level_index = p_level - 1; level_index > 0; --level_index) {
-			Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
-			parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
-		}
-
-		Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
-
-		ERR_FAIL_COND_MSG(face_vertices.size() != 4, "Faces need to be quads.");
-		for (int face_vert_index = 0; face_vert_index < 4; face_vert_index++) {
-			index_array.push_back(vertex_index_offset + face_vertices[face_vert_index]);
-		}
-
-		if (face_varying_data) {
-			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::UV);
-			for (int face_vert_index = 0; face_vert_index < 4; face_vert_index++) {
-				uv_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
-			}
-		}
-	}
-	topology_data.index_array = index_array;
-	if (face_varying_data) {
-		topology_data.uv_index_array = uv_index_array;
-	}
-}
 Array QuadSubdivider::_get_triangle_arrays() const {
 	Array subdiv_triangle_arrays;
 	subdiv_triangle_arrays.resize(Mesh::ARRAY_MAX);
@@ -119,6 +63,10 @@ Vector<int> QuadSubdivider::_get_face_vertex_count() const {
 	face_vertex_count.fill(4);
 	return face_vertex_count;
 };
+
+int32_t QuadSubdivider::_get_vertices_per_face_count() const {
+	return 4;
+}
 Array QuadSubdivider::_get_direct_triangle_arrays() const {
 	return _get_triangle_arrays();
 };

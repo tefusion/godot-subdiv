@@ -27,13 +27,14 @@ protected:
 		PackedFloat32Array bones_array;
 		PackedFloat32Array weights_array;
 
+		int32_t vertex_count_per_face = 0;
 		int32_t index_count = 0;
 		int32_t face_count = 0;
 		int32_t vertex_count = 0;
 		int32_t uv_count = 0;
 		int32_t bone_count = 0;
 		int32_t weight_count = 0;
-		TopologyData(const Array &p_mesh_arrays, int32_t p_format);
+		TopologyData(const Array &p_mesh_arrays, int32_t p_format, int32_t p_face_verts);
 		TopologyData() {}
 	};
 
@@ -49,12 +50,13 @@ protected:
 			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels);
 	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels);
 	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const bool face_varying_data);
+	void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
+			const int32_t p_level, const bool face_varying_data);
+	PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
 
 	virtual OpenSubdiv::Sdc::SchemeType _get_refiner_type() const;
-	virtual void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
-			const int32_t p_level, const bool face_varying_data);
-	virtual PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
 	virtual Vector<int> _get_face_vertex_count() const;
+	virtual int32_t _get_vertices_per_face_count() const;
 	virtual Array _get_triangle_arrays() const;
 	//might be needed if actual topology data with not just quads OR triangles is used, otherwise just calls _get_triangle_arrays
 	virtual Array _get_direct_triangle_arrays() const;

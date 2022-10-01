@@ -25,6 +25,7 @@ class SubdivisionMesh : public RefCounted {
 
 protected:
 	static void _bind_methods();
+	Array _get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type);
 
 	Vector<int64_t> subdiv_vertex_count; //variables used for compatibility with mesh
 	Vector<int64_t> subdiv_index_count;
@@ -37,7 +38,8 @@ public:
 	void set_rid(RID p_rid);
 	void update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level);
 	void _update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level, const Vector<Array> &cached_data_arrays);
-	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array);
+	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array,
+			const PackedInt32Array &index_array, TopologyDataMesh::TopologyType topology_type);
 	void clear();
 
 	int64_t surface_get_vertex_array_size(int p_surface) const;

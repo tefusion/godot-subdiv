@@ -13,6 +13,24 @@
 #include "godot_cpp/variant/builtin_types.hpp"
 
 #include "quad_subdivider.hpp"
+#include "triangle_subdivider.hpp"
+
+Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type) {
+	switch (topology_type) {
+		case TopologyDataMesh::QUAD: {
+			QuadSubdivider subdivider;
+			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, true);
+		}
+
+		case TopologyDataMesh::TRIANGLE: {
+			TriangleSubdivider subdivider;
+			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, true);
+		}
+
+		default:
+			return Array();
+	}
+}
 
 void SubdivisionMesh::update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t p_level) {
 	_update_subdivision(p_mesh, p_level, Vector<Array>()); //TODO: maybe split functions up
@@ -37,8 +55,7 @@ void SubdivisionMesh::_update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t 
 		Array v_arrays = cached_data_arrays.size() ? cached_data_arrays[surface_index]
 												   : p_mesh->surface_get_arrays(surface_index);
 
-		QuadSubdivider subdivider;
-		Array subdiv_triangle_arrays = subdivider.get_subdivided_arrays(v_arrays, p_level, surface_format, true);
+		Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, true, p_mesh->surface_get_topology_type(surface_index));
 
 		rendering_server->mesh_add_surface_from_arrays(subdiv_mesh, RenderingServer::PRIMITIVE_TRIANGLES, subdiv_triangle_arrays, Array(), Dictionary(), surface_format);
 
@@ -48,7 +65,8 @@ void SubdivisionMesh::_update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t 
 	}
 }
 
-void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array, const PackedInt32Array &index_array) {
+void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array,
+		const PackedInt32Array &index_array, TopologyDataMesh::TopologyType topology_type) {
 	int p_level = current_level;
 	ERR_FAIL_COND(p_level < 0);
 
@@ -60,7 +78,8 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	v_arrays[TopologyDataMesh::ARRAY_VERTEX] = new_vertex_array;
 	v_arrays[TopologyDataMesh::ARRAY_INDEX] = index_array;
 	QuadSubdivider subdivider;
-	Array subdiv_triangle_arrays = subdivider.get_subdivided_arrays(v_arrays, p_level, surface_format, false);
+
+	Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, false, topology_type);
 
 	const PackedInt32Array &index_array_out = subdiv_triangle_arrays[Mesh::ARRAY_INDEX];
 	const PackedVector3Array &vertex_array_out = subdiv_triangle_arrays[Mesh::ARRAY_VERTEX]; //now that subdivider class used this is the already triangulated array

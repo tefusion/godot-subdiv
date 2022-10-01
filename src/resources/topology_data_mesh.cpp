@@ -5,13 +5,15 @@
 #include "subdivision/subdivision_mesh.hpp"
 #include "subdivision/subdivision_server.hpp"
 
-void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material, const String &p_name, int32_t p_format) {
+void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material,
+		const String &p_name, int32_t p_format, TopologyType p_topology_type) {
 	ERR_FAIL_COND(p_arrays.size() != TopologyDataMesh::ARRAY_MAX);
 	Surface s;
 	s.arrays = p_arrays;
 	s.name = p_name;
 	s.material = p_material;
 	s.format = p_format;
+	s.topology_type = p_topology_type;
 	PackedVector3Array vertex_array = p_arrays[TopologyDataMesh::ARRAY_VERTEX];
 	int vertex_count = vertex_array.size();
 	ERR_FAIL_COND(vertex_count == 0);
@@ -57,8 +59,13 @@ void TopologyDataMesh::_set_data(const Dictionary &p_data) {
 			if (s.has("material")) {
 				material = s["material"];
 			}
+			int32_t topology_type_num = 0;
+			if (s.has("topology_type")) {
+				topology_type_num = s["topology_type"];
+			}
+			TopologyType topology_type = static_cast<TopologyType>(topology_type_num);
 
-			add_surface(arr, b_shapes, material, name, format);
+			add_surface(arr, b_shapes, material, name, format, topology_type);
 		}
 	}
 }
@@ -72,6 +79,7 @@ Dictionary TopologyDataMesh::_get_data() const {
 		Dictionary d;
 		d["arrays"] = surfaces[i].arrays;
 		d["format"] = surfaces[i].format;
+		d["topology_type"] = surfaces[i].topology_type;
 		if (surfaces[i].blend_shape_data.size()) {
 			Array bs_data;
 			for (int j = 0; j < surfaces[i].blend_shape_data.size(); j++) {
@@ -86,6 +94,7 @@ Dictionary TopologyDataMesh::_get_data() const {
 		if (!surfaces[i].name.is_empty()) {
 			d["name"] = surfaces[i].name;
 		}
+
 		surface_arr.push_back(d);
 	}
 	data["surfaces"] = surface_arr;
@@ -114,6 +123,16 @@ Ref<Material> TopologyDataMesh::surface_get_material(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, surfaces.size(), Ref<Material>());
 	Ref<Material> a = surfaces[index].material;
 	return surfaces[index].material;
+}
+
+void TopologyDataMesh::surface_set_topology_type(int64_t index, TopologyType p_topology_type) {
+	ERR_FAIL_INDEX(index, surfaces.size());
+	surfaces.write[index].topology_type = p_topology_type;
+}
+
+TopologyDataMesh::TopologyType TopologyDataMesh::surface_get_topology_type(int64_t index) const {
+	ERR_FAIL_INDEX_V(index, surfaces.size(), TopologyType::QUAD);
+	return surfaces[index].topology_type;
 }
 
 int64_t TopologyDataMesh::get_blend_shape_count() const {

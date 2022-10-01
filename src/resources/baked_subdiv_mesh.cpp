@@ -109,7 +109,7 @@ void BakedSubdivMesh::_update_subdiv() {
 	} else {
 		subdiv_mesh->_update_subdivision(data_mesh, subdiv_level, Vector<Array>());
 	}
-	//emit_changed(); //TODO: can uncomment when get_rid becomes virtual
+	emit_changed();
 }
 
 RID BakedSubdivMesh::get_rid() const {

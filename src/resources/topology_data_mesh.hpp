@@ -15,28 +15,6 @@ using namespace godot;
 class TopologyDataMesh : public Resource {
 	GDCLASS(TopologyDataMesh, Resource);
 
-	enum TopologyType {
-		TRIANGLE = 0,
-		QUAD = 1
-	};
-
-	struct Surface {
-		Array arrays;
-		Array blend_shape_data; //Array[Array][TopologyDataMesh::ARRAY_MAX]
-		Ref<Material> material;
-		String name;
-		int32_t flags = 0;
-		AABB aabb;
-		int32_t format;
-	};
-	Vector<Surface> surfaces;
-	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
-
-protected:
-	void _set_data(const Dictionary &p_data);
-	Dictionary _get_data() const;
-	static void _bind_methods();
-
 public:
 	//extra space for uv index array
 	enum ArrayType {
@@ -57,6 +35,30 @@ public:
 		ARRAY_MAX = Mesh::ARRAY_MAX + 1
 	};
 
+	enum TopologyType {
+		TRIANGLE = 0,
+		QUAD = 1
+	};
+
+protected:
+	struct Surface {
+		Array arrays;
+		Array blend_shape_data; //Array[Array][TopologyDataMesh::ARRAY_MAX]
+		Ref<Material> material;
+		String name;
+		int32_t flags = 0;
+		AABB aabb;
+		int32_t format;
+		TopologyType topology_type;
+	};
+	Vector<Surface> surfaces;
+	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
+
+	void _set_data(const Dictionary &p_data);
+	Dictionary _get_data() const;
+	static void _bind_methods();
+
+public:
 	struct TopologySurfaceData {
 		godot::PackedVector3Array vertex_array;
 		godot::PackedVector3Array normal_array;
@@ -82,7 +84,7 @@ public:
 	Array surface_get_arrays(int p_surface) const;
 
 	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
-			const Ref<Material> &p_material, const String &p_name, int32_t p_format);
+			const Ref<Material> &p_material, const String &p_name, int32_t p_format, TopologyType p_topology_type);
 	String surface_get_name(int p_surface) const;
 	void surface_set_name(int p_surface, const String &p_name);
 	void surface_set_current_vertex_array(int p_surface, const PackedVector3Array &p_vertex_array);
@@ -92,6 +94,8 @@ public:
 	int64_t surface_get_format(int64_t index) const;
 	void surface_set_material(int64_t index, const Ref<Material> &material);
 	Ref<Material> surface_get_material(int64_t index) const;
+	void surface_set_topology_type(int64_t index, TopologyType p_topology_type);
+	TopologyType surface_get_topology_type(int64_t index) const;
 
 	int64_t get_blend_shape_count() const;
 	Array surface_get_blend_shape_arrays(int64_t surface_index) const;
@@ -106,4 +110,5 @@ public:
 	~TopologyDataMesh();
 };
 
+VARIANT_ENUM_CAST(TopologyDataMesh, TopologyType);
 #endif

@@ -1,17 +1,17 @@
-#ifndef QUAD_SUBDIVIDER_H
-#define QUAD_SUBDIVIDER_H
+#ifndef TRIANGLE_SUBDIVIDER_H
+#define TRIANGLE_SUBDIVIDER_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/ref_counted.hpp"
 #include "godot_cpp/core/binder_common.hpp"
 #include "subdivider.hpp"
 
-class QuadSubdivider : public Subdivider {
-	GDCLASS(QuadSubdivider, Subdivider);
+class TriangleSubdivider : public Subdivider {
+	GDCLASS(TriangleSubdivider, Subdivider);
 
 public:
-	QuadSubdivider();
-	~QuadSubdivider();
+	TriangleSubdivider();
+	~TriangleSubdivider();
 
 protected:
 	static void _bind_methods();

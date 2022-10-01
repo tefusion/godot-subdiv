@@ -13,7 +13,7 @@
 using namespace OpenSubdiv;
 typedef Far::TopologyDescriptor Descriptor;
 
-Subdivider::TopologyData::TopologyData(const Array &p_mesh_arrays, int32_t p_format) {
+Subdivider::TopologyData::TopologyData(const Array &p_mesh_arrays, int32_t p_format, int32_t p_face_verts) {
 	vertex_array = p_mesh_arrays[TopologyDataMesh::ARRAY_VERTEX];
 	index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_INDEX];
 	if (p_format & Mesh::ARRAY_FORMAT_TEX_UV) {
@@ -25,8 +25,9 @@ Subdivider::TopologyData::TopologyData(const Array &p_mesh_arrays, int32_t p_for
 		weights_array = p_mesh_arrays[TopologyDataMesh::ARRAY_WEIGHTS];
 	}
 
+	vertex_count_per_face = p_face_verts;
 	index_count = index_array.size();
-	face_count = index_array.size() / 4;
+	face_count = index_array.size() / vertex_count_per_face;
 	vertex_count = vertex_array.size();
 	uv_count = uv_index_array.size();
 	bone_count = bones_array.size();
@@ -180,7 +181,7 @@ void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format,
 	ERR_FAIL_COND(p_level < 0);
 	bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 
-	topology_data = TopologyData(p_arrays, p_format);
+	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
 	if (p_level == 0) {
 		return;
 	}
@@ -204,18 +205,75 @@ void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format,
 OpenSubdiv::Sdc::SchemeType Subdivider::_get_refiner_type() const {
 	return Sdc::SchemeType::SCHEME_CATMARK;
 }
+
 void Subdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
 		const int32_t p_level, const bool face_varying_data) {
+	PackedInt32Array index_array;
+	PackedInt32Array uv_index_array;
+
+	Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
+	int face_count_out = last_level.GetNumFaces();
+	int uv_index_offset = face_varying_data ? topology_data.uv_count - last_level.GetNumFVarValues(Channels::UV) : -1;
+	int vertex_index_offset = topology_data.vertex_count - last_level.GetNumVertices();
+	for (int face_index = 0; face_index < face_count_out; ++face_index) {
+		int parent_face_index = last_level.GetFaceParentFace(face_index);
+		for (int level_index = p_level - 1; level_index > 0; --level_index) {
+			Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
+			parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
+		}
+
+		Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
+
+		ERR_FAIL_COND(face_vertices.size() != topology_data.vertex_count_per_face);
+		for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
+			index_array.push_back(vertex_index_offset + face_vertices[face_vert_index]);
+		}
+
+		if (face_varying_data) {
+			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::UV);
+			for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
+				uv_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
+			}
+		}
+	}
+	topology_data.index_array = index_array;
+	if (face_varying_data) {
+		topology_data.uv_index_array = uv_index_array;
+	}
 }
+
 PackedVector3Array Subdivider::_calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) {
-	return PackedVector3Array();
+	PackedVector3Array normals;
+	normals.resize(quad_vertex_array.size());
+	for (int f = 0; f < quad_index_array.size(); f += topology_data.vertex_count_per_face) {
+		// // We will use the first three verts to calculate a normal
+		const Vector3 &p_point1 = quad_vertex_array[quad_index_array[f]];
+		const Vector3 &p_point2 = quad_vertex_array[quad_index_array[f + 1]];
+		const Vector3 &p_point3 = quad_vertex_array[quad_index_array[f + 2]];
+		Vector3 normal_calculated = (p_point1 - p_point3).cross(p_point1 - p_point2);
+		normal_calculated.normalize();
+		for (int n_pos = f; n_pos < f + topology_data.vertex_count_per_face; n_pos++) {
+			int vertexIndex = quad_index_array[n_pos];
+			normals[vertexIndex] += normal_calculated;
+		}
+	}
+	//normalized accumulated normals
+	for (int vertex_index = 0; vertex_index < normals.size(); ++vertex_index) {
+		normals[vertex_index].normalize();
+	}
+	return normals;
 }
+
 Array Subdivider::_get_triangle_arrays() const {
 	return Array();
 }
 
 Vector<int> Subdivider::_get_face_vertex_count() const {
 	return Vector<int>();
+}
+
+int32_t Subdivider::_get_vertices_per_face_count() const {
+	return 0;
 }
 Array Subdivider::_get_direct_triangle_arrays() const {
 	return Array();

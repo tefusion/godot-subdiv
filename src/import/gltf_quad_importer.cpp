@@ -53,7 +53,8 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 		//convert actual mesh arrays to quad data
 		Array p_arrays = p_mesh->surface_get_arrays(surface_index);
 		int32_t format = p_mesh->surface_get_format(surface_index);
-		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays), format);
+		Array surface_arrays;
+		TopologyDataMesh::TopologyType topology_type = _generate_topology_surface_arrays(SurfaceVertexArrays(p_arrays), format, surface_arrays);
 
 		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
 		Array blend_shape_arrays = p_mesh->surface_get_blend_shape_arrays(surface_index);
@@ -62,8 +63,9 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
 		} //TODO: blend shape data also contains ARRAY_NORMAL and ARRAY_TANGENT, considering normals get generated for subdivisions won't get added for now
 
-		ERR_FAIL_COND(!quad_surface_arrays.size());
-		quad_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->surface_get_material(surface_index), p_mesh->surface_get_name(surface_index), format);
+		ERR_FAIL_COND(!surface_arrays.size());
+		quad_mesh->add_surface(surface_arrays, quad_blend_shape_arrays, p_mesh->surface_get_material(surface_index),
+				p_mesh->surface_get_name(surface_index), format, topology_type);
 	}
 	//actually add blendshapes to data
 	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
@@ -116,7 +118,8 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		Array p_arrays = p_mesh->get_surface_arrays(surface_index);
 		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
 		int32_t format = generate_fake_format(p_arrays); //importermesh surface_get_format just returns flags
-		Array quad_surface_arrays = generate_quad_mesh_arrays(SurfaceVertexArrays(p_arrays), format);
+		Array surface_arrays;
+		TopologyDataMesh::TopologyType topology_type = _generate_topology_surface_arrays(SurfaceVertexArrays(p_arrays), format, surface_arrays);
 
 		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
 		Array blend_shape_arrays;
@@ -128,8 +131,9 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
 		}
 
-		ERR_FAIL_COND(!quad_surface_arrays.size());
-		topology_data_mesh->add_surface(quad_surface_arrays, quad_blend_shape_arrays, p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index), format);
+		ERR_FAIL_COND(!surface_arrays.size());
+		topology_data_mesh->add_surface(surface_arrays, quad_blend_shape_arrays,
+				p_mesh->get_surface_material(surface_index), p_mesh->get_surface_name(surface_index), format, topology_type);
 	}
 	//actually add blendshapes to data
 	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
@@ -181,31 +185,33 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 	}
 }
 
-Array GLTFQuadImporter::generate_quad_mesh_arrays(const SurfaceVertexArrays &surface, int32_t format) {
-	ERR_FAIL_COND_V(!(format & Mesh::ARRAY_FORMAT_INDEX), Array());
+TopologyDataMesh::TopologyType GLTFQuadImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays) {
+	ERR_FAIL_COND_V(!(format & Mesh::ARRAY_FORMAT_INDEX), TopologyDataMesh::TopologyType::QUAD);
 	QuadSurfaceData quad_surface = _remove_duplicate_vertices(surface, format);
-	_merge_to_quads(quad_surface.index_array, quad_surface.uv_array, format);
-	ERR_FAIL_COND_V(quad_surface.index_array.size() / 4 != surface.index_array.size() / 6, Array());
+	bool is_quad = _merge_to_quads(quad_surface.index_array, quad_surface.uv_array, format);
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 
-	Array quad_surface_arrays;
-	quad_surface_arrays.resize(TopologyDataMesh::ARRAY_MAX);
-	quad_surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
-	quad_surface_arrays[TopologyDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
-	// quad_surface_arrays[Mesh::ARRAY_TANGENT]
-	quad_surface_arrays[TopologyDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
-	quad_surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
-	quad_surface_arrays[TopologyDataMesh::ARRAY_INDEX] = quad_surface.index_array;
+	surface_arrays.resize(TopologyDataMesh::ARRAY_MAX);
+	surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
+	surface_arrays[TopologyDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
+	// surface_arrays[Mesh::ARRAY_TANGENT]
+	surface_arrays[TopologyDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
+	surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
+	surface_arrays[TopologyDataMesh::ARRAY_INDEX] = quad_surface.index_array;
 	if (has_uv) {
 		PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
-		quad_surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
-		quad_surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = uv_index_array;
+		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
+		surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = uv_index_array;
 	} else { //this is to avoid issues with casting null to Array when using these as reference
-		quad_surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
-		quad_surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
+		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
+		surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
 	}
 
-	return quad_surface_arrays;
+	if (is_quad) {
+		return TopologyDataMesh::TopologyType::QUAD;
+	} else {
+		return TopologyDataMesh::TopologyType::TRIANGLE;
+	}
 }
 
 GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format) {
@@ -254,10 +260,13 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 	return quad_surface;
 }
 
-//TODO: make it return boolean to then create subdiv data mesh usable with loop(will also need custom uv handling)
 // Goes through index_array and always merges the 6 indices of 2 triangles to 1 quad (uv_array also updated)
-void GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format) {
-	ERR_FAIL_COND_MSG(index_array.size() % 6 != 0, "Mesh does not contain triangle amount to always merge two to one quad");
+// returns boolean if conversion to quad was successful
+bool GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format) {
+	if (index_array.size() % 6 != 0) {
+		return false;
+	}
+
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	PackedInt32Array quad_index_array;
@@ -286,7 +295,10 @@ void GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVect
 				pos_unshared_verts.push_back(t2);
 			}
 		}
-		ERR_FAIL_COND_MSG(shared_verts.size() != 2, "Mesh not convertible to quad mesh");
+		if (shared_verts.size() != 2) {
+			return false;
+		}
+
 		/*isn't always like this, but for recreating triangles later this is
 		unshared[0]	 - 	shared[0]
 			|				|
@@ -307,6 +319,7 @@ void GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVect
 	}
 	index_array = quad_index_array;
 	uv_array = quad_uv_array;
+	return true;
 }
 
 // tries to store uv's as compact as possible with an index array, an additional index array
