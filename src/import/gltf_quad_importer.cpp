@@ -179,36 +179,6 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 				subdiv_importer_mesh->add_surface(Mesh::PRIMITIVE_TRIANGLES, subdiv_mesh->_surface_get_arrays(surface_i), blend_shape_arrays, Dictionary(), material, material->get_name(), subdiv_mesh->_surface_get_format(surface_i));
 			}
 		}
-
-		Array skin_pose_transform_array;
-		{
-			const Ref<Skin> skin = p_meshinstance->get_skin();
-			if (skin.is_valid()) {
-				NodePath skeleton_path = p_meshinstance->get_skeleton_path();
-				const Node *node = p_meshinstance->get_node_or_null(skeleton_path);
-				const Skeleton3D *skeleton = Object::cast_to<Skeleton3D>(node);
-				if (skeleton) {
-					int bind_count = skin->get_bind_count();
-
-					for (int i = 0; i < bind_count; i++) {
-						Transform3D bind_pose = skin->get_bind_pose(i);
-						String bind_name = skin->get_bind_name(i);
-
-						int bone_idx = bind_name.is_empty() ? skin->get_bind_bone(i) : skeleton->find_bone(bind_name);
-						ERR_FAIL_COND(bone_idx >= skeleton->get_bone_count());
-						Transform3D bp_global_rest;
-						if (bone_idx >= 0) {
-							bp_global_rest = skeleton->get_bone_global_pose(bone_idx);
-						} else {
-							bp_global_rest = skeleton->get_bone_global_pose(i);
-						}
-
-						skin_pose_transform_array.push_back(bp_global_rest * bind_pose);
-					}
-				}
-			}
-		}
-		subdiv_importer_mesh->generate_lods(UtilityFunctions::deg_to_rad(25), UtilityFunctions::deg_to_rad(60), skin_pose_transform_array);
 		p_meshinstance->set_mesh(subdiv_importer_mesh);
 	} else {
 		ERR_PRINT("Import mode doesn't exist");
