@@ -149,6 +149,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.repository.name }}_${{ steps.version.outputs.version }}
+          name: godot-subdiv
           path: |
             ${{ github.workspace }}/project/
