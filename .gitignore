@@ -15,3 +15,7 @@
 
 # Editors
 .vscode/
+
+*.obj
+
+*.o

@@ -9,8 +9,8 @@
 #include "godot_cpp/classes/importer_mesh_instance3d.hpp"
 #include "godot_cpp/classes/mesh_instance3d.hpp"
 #include "godot_cpp/classes/scene_tree.hpp"
+#include "godot_cpp/classes/skeleton3d.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "nodes/baked_subdiv_mesh_instance_3d.hpp"
 #include "resources/baked_subdiv_mesh.hpp"
 
 GLTFQuadImporter::GLTFQuadImporter() {
@@ -158,29 +158,29 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		p_meshinstance->replace_by(subdiv_mesh_instance, false);
 		subdiv_mesh_instance->set_name(mesh_instance_name);
 		p_meshinstance->queue_free();
-	} else if (import_mode == ImportMode::BAKED_SUBDIV_MESH) {
-		BakedSubdivMeshInstance3D *subdiv_mesh_instance = memnew(BakedSubdivMeshInstance3D);
-		// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
-		subdiv_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
-		if (!p_meshinstance->get_skin().is_null()) {
-			subdiv_mesh_instance->set_skin(p_meshinstance->get_skin());
+	} else if (import_mode == ImportMode::ARRAY_MESH || import_mode == ImportMode::BAKED_SUBDIV_MESH) {
+		Ref<ImporterMesh> subdiv_importer_mesh;
+		subdiv_importer_mesh.instantiate();
+		{
+			Ref<BakedSubdivMesh> subdiv_mesh;
+			subdiv_mesh.instantiate();
+			subdiv_mesh->set_data_mesh(topology_data_mesh);
+			subdiv_mesh->set_subdiv_level(subdiv_level);
+			//for (int64_t blend_shape_idx = 0; blend_shape_idx < subdiv_mesh->_get_blend_shape_count(); blend_shape_idx++) {
+			//	StringName shape_name = subdiv_mesh->_get_blend_shape_name(blend_shape_idx);
+			//	subdiv_importer_mesh->add_blend_shape(shape_name);
+			//}
+			for (int64_t surface_i = 0; surface_i < subdiv_mesh->_get_surface_count(); surface_i++) {
+				Ref<Material> material = subdiv_mesh->_surface_get_material(surface_i);
+				Array blend_shape_arrays;
+				//for (int64_t blend_shape_i = 0; blend_shape_i < subdiv_mesh->_get_blend_shape_count(); blend_shape_i++) {
+				//	blend_shape_arrays.push_back(subdiv_mesh->_surface_get_blend_shape_arrays(blend_shape_i));
+				//}
+				subdiv_importer_mesh->add_surface(Mesh::PRIMITIVE_TRIANGLES, subdiv_mesh->_surface_get_arrays(surface_i), blend_shape_arrays, Dictionary(), material, material->get_name(), subdiv_mesh->_surface_get_format(surface_i));
+			}
 		}
-		subdiv_mesh_instance->set_transform(p_meshinstance->get_transform());
-		StringName quad_mesh_instance_name = p_meshinstance->get_name();
-		BakedSubdivMesh *subdiv_mesh = memnew(BakedSubdivMesh);
-		subdiv_mesh->set_data_mesh(topology_data_mesh);
-		subdiv_mesh_instance->set_mesh(subdiv_mesh);
-		subdiv_mesh->set_subdiv_level(subdiv_level);
-
-		// replace importermeshinstance in scene
-		p_meshinstance->replace_by(subdiv_mesh_instance, false);
-		subdiv_mesh_instance->set_name(quad_mesh_instance_name);
-		p_meshinstance->queue_free();
-	} else if (import_mode == ImportMode::ARRAY_MESH && subdiv_level > 0) {
-		ERR_PRINT("Import baking not implemented yet");
-	}
-
-	else {
+		p_meshinstance->set_mesh(subdiv_importer_mesh);
+	} else {
 		ERR_PRINT("Import mode doesn't exist");
 	}
 }
