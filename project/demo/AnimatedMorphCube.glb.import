@@ -12,5 +12,5 @@ dest_files=["res://.godot/imported/AnimatedMorphCube.glb-6c280e5795b13de9b6e86a0
 
 [params]
 
-import_as="BakedSubdivMesh (subdivision in mesh)"
+import_as="SubdivMeshInstance3D"
 sudbivision_level=2

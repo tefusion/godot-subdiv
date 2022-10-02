@@ -15,8 +15,11 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 	PackedVector3Array vertex_array;
 	PackedInt32Array index_array;
 	PackedVector3Array normal_array;
+	PackedInt32Array bones_array;
+	PackedFloat32Array weights_array;
 
 	bool use_uv = topology_data.uv_array.size();
+	bool use_bones = topology_data.bones_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
 	for (int quad_index = 0; quad_index < topology_data.index_array.size(); quad_index += 4) {
@@ -30,6 +33,12 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 			vertex_array.append(topology_data.vertex_array[topology_data.index_array[single_quad_index]]);
 			if (has_normals) {
 				normal_array.append(topology_data.normal_array[topology_data.index_array[single_quad_index]]);
+			}
+			if (use_bones) {
+				for (int bone_index = 0; bone_index < 4; bone_index++) {
+					bones_array.append(topology_data.bones_array[topology_data.index_array[single_quad_index] * 4 + bone_index]);
+					weights_array.append(topology_data.weights_array[topology_data.index_array[single_quad_index] * 4 + bone_index]);
+				}
 			}
 
 		} //unshared0, shared0, unshared1, shared1
@@ -52,6 +61,10 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 	}
 	if (has_normals) {
 		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
+	}
+	if (use_bones) {
+		subdiv_triangle_arrays[Mesh::ARRAY_BONES] = bones_array;
+		subdiv_triangle_arrays[Mesh::ARRAY_WEIGHTS] = weights_array;
 	}
 
 	return subdiv_triangle_arrays;

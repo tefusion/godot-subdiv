@@ -53,6 +53,7 @@ private:
 	TopologyDataMesh::TopologyType _generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays);
 
 	int32_t generate_fake_format(const Array &arrays) const;
+	Object *_replace_importer_mesh_instance_with_mesh_instance(Object *importer_mesh_instance_object);
 
 public:
 	GLTFQuadImporter();

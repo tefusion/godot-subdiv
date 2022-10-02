@@ -11,6 +11,7 @@
 #include "nodes/subdiv_mesh_instance_3d.hpp"
 #include "resources/baked_subdiv_mesh.hpp"
 #include "resources/topology_data_mesh.hpp"
+#include "subdivision/subdivision_baker.hpp"
 #include "subdivision/subdivision_mesh.hpp"
 #include "subdivision/subdivision_server.hpp"
 
@@ -30,6 +31,7 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 		ClassDB::register_class<QuadSubdivider>();
 		ClassDB::register_class<SubdivisionServer>();
 		ClassDB::register_class<SubdivisionMesh>();
+		ClassDB::register_class<SubdivisionBaker>();
 
 		ClassDB::register_class<SubdivMeshInstance3D>();
 

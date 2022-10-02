@@ -24,7 +24,7 @@ protected:
 		PackedVector2Array uv_array;
 		PackedInt32Array uv_index_array;
 		PackedInt32Array index_array;
-		PackedFloat32Array bones_array;
+		PackedInt32Array bones_array;
 		PackedFloat32Array weights_array;
 
 		int32_t vertex_count_per_face = 0;
@@ -46,12 +46,12 @@ public:
 protected:
 	TopologyData topology_data; //used for both passing to opensubdiv and storing result topology again (easier to handle level 0 like that)
 	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //sets topology_data
-	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(const int num_channels, Vector<int> &subdiv_face_vertex_count,
-			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels);
+	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(Vector<int> &subdiv_face_vertex_count,
+			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels, const int32_t p_format);
 	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels);
-	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const bool face_varying_data);
+	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format);
 	void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
-			const int32_t p_level, const bool face_varying_data);
+			const int32_t p_level, const int32_t p_format);
 	PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
 
 	virtual OpenSubdiv::Sdc::SchemeType _get_refiner_type() const;
