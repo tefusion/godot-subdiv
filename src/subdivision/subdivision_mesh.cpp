@@ -91,9 +91,10 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 
 	uint32_t vertex_stride = sizeof(float) * 3; //vector3 size
 	int normal_offset = vertex_stride;
-	if (vertex_buffer.size() / vertex_stride != vertex_array_out.size()) { //if not already equal likely also contains normals
+	if (vertex_buffer.size() / vertex_stride != vertex_array_out.size()) { //if not already equal likely also contains normals and tangents
 		//if check can be removed if subdivider is set to always just generate normals
 		vertex_stride += sizeof(int); //normal
+		vertex_stride += sizeof(int); //tangent
 	}
 
 	ERR_FAIL_COND(vertex_buffer.size() / vertex_stride != vertex_array_out.size());

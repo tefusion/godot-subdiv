@@ -12,5 +12,5 @@ dest_files=["res://.godot/imported/skinning_test.glb-057980e2b0ac30f85636ac20da7
 
 [params]
 
-import_as="BakedSubdivMesh (bake at runtime)"
+import_as="ArrayMesh (bake at import)"
 sudbivision_level=3

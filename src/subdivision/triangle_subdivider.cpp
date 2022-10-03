@@ -1,6 +1,6 @@
 #include "triangle_subdivider.hpp"
-
 #include "godot_cpp/classes/mesh.hpp"
+#include "godot_cpp/classes/surface_tool.hpp"
 
 using namespace OpenSubdiv;
 
@@ -9,50 +9,39 @@ OpenSubdiv::Sdc::SchemeType TriangleSubdivider::_get_refiner_type() const {
 }
 
 Array TriangleSubdivider::_get_triangle_arrays() const {
-	Array subdiv_triangle_arrays;
-	subdiv_triangle_arrays.resize(Mesh::ARRAY_MAX);
-	PackedVector2Array uv_array;
-	PackedVector3Array vertex_array;
-	PackedInt32Array index_array;
-	PackedVector3Array normal_array;
-	PackedInt32Array bones_array;
-	PackedFloat32Array weights_array;
+	SurfaceTool st;
 
 	bool use_uv = topology_data.uv_array.size();
 	bool use_bones = topology_data.weights_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
+	st.begin(Mesh::PRIMITIVE_TRIANGLES);
 	for (int index = 0; index < topology_data.index_array.size(); index++) {
+		st.add_vertex(topology_data.vertex_array[topology_data.index_array[index]]);
 		if (use_uv) {
-			uv_array.append(topology_data.uv_array[topology_data.uv_index_array[index]]);
+			st.set_uv(topology_data.uv_array[topology_data.uv_index_array[index]]);
 		}
-		vertex_array.append(topology_data.vertex_array[topology_data.index_array[index]]);
 		if (has_normals) {
-			normal_array.append(topology_data.normal_array[topology_data.index_array[index]]);
+			st.set_normal(topology_data.normal_array[topology_data.index_array[index]]);
 		}
 		if (use_bones) {
+			PackedInt32Array bones_array;
+			PackedFloat32Array weights_array;
 			for (int bone_index = 0; bone_index < 4; bone_index++) {
 				bones_array.append(topology_data.bones_array[topology_data.index_array[index] * 4 + bone_index]);
 				weights_array.append(topology_data.weights_array[topology_data.index_array[index] * 4 + bone_index]);
 			}
+			st.set_bones(bones_array);
+			st.set_weights(weights_array);
 		}
-		index_array.append(index);
+		st.add_index(index);
 	}
 
-	subdiv_triangle_arrays[Mesh::ARRAY_VERTEX] = vertex_array;
-	subdiv_triangle_arrays[Mesh::ARRAY_INDEX] = index_array;
-	if (use_uv) {
-		subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
-	}
-	if (has_normals) {
-		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
-	}
-	if (use_bones) {
-		subdiv_triangle_arrays[Mesh::ARRAY_BONES] = bones_array;
-		subdiv_triangle_arrays[Mesh::ARRAY_WEIGHTS] = weights_array;
+	if (has_normals && use_uv) {
+		st.generate_tangents();
 	}
 
-	return subdiv_triangle_arrays;
+	return st.commit_to_arrays();
 }
 
 Vector<int> TriangleSubdivider::_get_face_vertex_count() const {

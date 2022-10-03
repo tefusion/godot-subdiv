@@ -167,8 +167,11 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 		case ImportMode::BAKED_SUBDIV_MESH: {
 			Ref<BakedSubdivMesh> subdiv_mesh;
 			subdiv_mesh.instantiate();
+
 			subdiv_mesh->set_data_mesh(topology_data_mesh);
 			subdiv_mesh->set_subdiv_level(subdiv_level);
+			subdiv_mesh->set_blend_shape_mode(Mesh::BLEND_SHAPE_MODE_NORMALIZED); //otherwise data would need to be converted
+
 			MeshInstance3D *mesh_instance = Object::cast_to<MeshInstance3D>(_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance));
 			mesh_instance->set_mesh(subdiv_mesh);
 			break;
@@ -178,7 +181,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 			subdiv_importer_mesh.instantiate();
 
 			SubdivisionBaker baker;
-			subdiv_importer_mesh = baker.get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level);
+			subdiv_importer_mesh = baker.get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level, true);
 			importer_mesh_instance->set_mesh(subdiv_importer_mesh);
 			MeshInstance3D *mesh_instance = Object::cast_to<MeshInstance3D>(_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance));
 			break;

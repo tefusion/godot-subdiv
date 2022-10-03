@@ -1,6 +1,6 @@
 #include "quad_subdivider.hpp"
-
 #include "godot_cpp/classes/mesh.hpp"
+#include "godot_cpp/classes/surface_tool.hpp"
 
 using namespace OpenSubdiv;
 
@@ -9,65 +9,54 @@ OpenSubdiv::Sdc::SchemeType QuadSubdivider::_get_refiner_type() const {
 }
 
 Array QuadSubdivider::_get_triangle_arrays() const {
-	Array subdiv_triangle_arrays;
-	subdiv_triangle_arrays.resize(Mesh::ARRAY_MAX);
-	PackedVector2Array uv_array;
-	PackedVector3Array vertex_array;
-	PackedInt32Array index_array;
-	PackedVector3Array normal_array;
-	PackedInt32Array bones_array;
-	PackedFloat32Array weights_array;
+	SurfaceTool st;
 
 	bool use_uv = topology_data.uv_array.size();
 	bool use_bones = topology_data.bones_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
+	st.begin(Mesh::PRIMITIVE_TRIANGLES);
 	for (int quad_index = 0; quad_index < topology_data.index_array.size(); quad_index += 4) {
 		//add vertices part of quad
 
 		//after for loop unshared0 vertex will be at the positon quad_index in the new vertex_array in the SurfaceTool
 		for (int single_quad_index = quad_index; single_quad_index < quad_index + 4; single_quad_index++) {
 			if (use_uv) {
-				uv_array.append(topology_data.uv_array[topology_data.uv_index_array[single_quad_index]]);
+				st.set_uv(topology_data.uv_array[topology_data.uv_index_array[single_quad_index]]);
 			}
-			vertex_array.append(topology_data.vertex_array[topology_data.index_array[single_quad_index]]);
+
 			if (has_normals) {
-				normal_array.append(topology_data.normal_array[topology_data.index_array[single_quad_index]]);
+				st.set_normal(topology_data.normal_array[topology_data.index_array[single_quad_index]]);
 			}
 			if (use_bones) {
+				PackedInt32Array bones_array;
+				PackedFloat32Array weights_array;
 				for (int bone_index = 0; bone_index < 4; bone_index++) {
 					bones_array.append(topology_data.bones_array[topology_data.index_array[single_quad_index] * 4 + bone_index]);
 					weights_array.append(topology_data.weights_array[topology_data.index_array[single_quad_index] * 4 + bone_index]);
 				}
+				st.set_bones(bones_array);
+				st.set_weights(weights_array);
 			}
+			st.add_vertex(topology_data.vertex_array[topology_data.index_array[single_quad_index]]);
 
 		} //unshared0, shared0, unshared1, shared1
 
 		//add triangle 1 with unshared0
-		index_array.append(quad_index);
-		index_array.append(quad_index + 1);
-		index_array.append(quad_index + 3);
+		st.add_index(quad_index);
+		st.add_index(quad_index + 1);
+		st.add_index(quad_index + 3);
 
 		//add triangle 2 with unshared1
-		index_array.append(quad_index + 1);
-		index_array.append(quad_index + 2);
-		index_array.append(quad_index + 3);
+		st.add_index(quad_index + 1);
+		st.add_index(quad_index + 2);
+		st.add_index(quad_index + 3);
+	}
+	if (has_normals && use_uv) {
+		st.generate_tangents();
 	}
 
-	subdiv_triangle_arrays[Mesh::ARRAY_VERTEX] = vertex_array;
-	subdiv_triangle_arrays[Mesh::ARRAY_INDEX] = index_array;
-	if (use_uv) {
-		subdiv_triangle_arrays[Mesh::ARRAY_TEX_UV] = uv_array;
-	}
-	if (has_normals) {
-		subdiv_triangle_arrays[Mesh::ARRAY_NORMAL] = normal_array;
-	}
-	if (use_bones) {
-		subdiv_triangle_arrays[Mesh::ARRAY_BONES] = bones_array;
-		subdiv_triangle_arrays[Mesh::ARRAY_WEIGHTS] = weights_array;
-	}
-
-	return subdiv_triangle_arrays;
+	return st.commit_to_arrays();
 }
 
 Vector<int> QuadSubdivider::_get_face_vertex_count() const {

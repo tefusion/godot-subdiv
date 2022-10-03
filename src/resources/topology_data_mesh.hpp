@@ -43,7 +43,7 @@ public:
 protected:
 	struct Surface {
 		Array arrays;
-		Array blend_shape_data; //Array[Array][TopologyDataMesh::ARRAY_MAX]
+		Array blend_shape_data; //Array[Array][PackedVector3Array]
 		Ref<Material> material;
 		String name;
 		int32_t flags = 0;

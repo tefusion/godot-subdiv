@@ -12,5 +12,5 @@ dest_files=["res://.godot/imported/uv-test.glb-d58165737ff3fad9ad17930412a7622f.
 
 [params]
 
-import_as="BakedSubdivMesh (subdivision in mesh)"
+import_as="BakedSubdivMesh (bake at runtime)"
 sudbivision_level=2
