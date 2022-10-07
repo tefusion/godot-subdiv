@@ -9,20 +9,20 @@ OpenSubdiv::Sdc::SchemeType TriangleSubdivider::_get_refiner_type() const {
 }
 
 Array TriangleSubdivider::_get_triangle_arrays() const {
-	SurfaceTool st;
+	Ref<SurfaceTool> st = memnew(SurfaceTool);
 
 	bool use_uv = topology_data.uv_array.size();
 	bool use_bones = topology_data.weights_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
-	st.begin(Mesh::PRIMITIVE_TRIANGLES);
+	st->begin(Mesh::PRIMITIVE_TRIANGLES);
 	for (int index = 0; index < topology_data.index_array.size(); index++) {
-		st.add_vertex(topology_data.vertex_array[topology_data.index_array[index]]);
+		st->add_vertex(topology_data.vertex_array[topology_data.index_array[index]]);
 		if (use_uv) {
-			st.set_uv(topology_data.uv_array[topology_data.uv_index_array[index]]);
+			st->set_uv(topology_data.uv_array[topology_data.uv_index_array[index]]);
 		}
 		if (has_normals) {
-			st.set_normal(topology_data.normal_array[topology_data.index_array[index]]);
+			st->set_normal(topology_data.normal_array[topology_data.index_array[index]]);
 		}
 		if (use_bones) {
 			PackedInt32Array bones_array;
@@ -31,17 +31,17 @@ Array TriangleSubdivider::_get_triangle_arrays() const {
 				bones_array.append(topology_data.bones_array[topology_data.index_array[index] * 4 + bone_index]);
 				weights_array.append(topology_data.weights_array[topology_data.index_array[index] * 4 + bone_index]);
 			}
-			st.set_bones(bones_array);
-			st.set_weights(weights_array);
+			st->set_bones(bones_array);
+			st->set_weights(weights_array);
 		}
-		st.add_index(index);
+		st->add_index(index);
 	}
 
 	if (has_normals && use_uv) {
-		st.generate_tangents();
+		st->generate_tangents();
 	}
 
-	return st.commit_to_arrays();
+	return st->commit_to_arrays();
 }
 
 Vector<int> TriangleSubdivider::_get_face_vertex_count() const {
