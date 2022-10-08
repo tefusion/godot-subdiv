@@ -33,13 +33,13 @@ GLTFQuadImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_a
 	vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
 	normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
 	index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
-	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV]) {
+	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY) {
 		uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
 	}
-	if (p_mesh_arrays[Mesh::ARRAY_BONES])
+	if (p_mesh_arrays[Mesh::ARRAY_BONES].get_type() == Variant::PACKED_INT32_ARRAY)
 		bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
 
-	if (p_mesh_arrays[Mesh::ARRAY_WEIGHTS])
+	if (p_mesh_arrays[Mesh::ARRAY_WEIGHTS].get_type() == Variant::PACKED_FLOAT32_ARRAY)
 		weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
 }
 
