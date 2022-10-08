@@ -19,12 +19,12 @@ Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
 			QuadSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, true);
+			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
 			TriangleSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, true);
+			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
 		}
 
 		default:
@@ -79,6 +79,9 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	v_arrays[TopologyDataMesh::ARRAY_INDEX] = index_array;
 	QuadSubdivider subdivider;
 
+	//TODO: also update normals
+	// for putting it into an int look in immediate mesh (just shift and clamp each value to fit into 30 bits total)
+	// currently normal generation too slow to actually update
 	Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, false, topology_type);
 
 	const PackedInt32Array &index_array_out = subdiv_triangle_arrays[Mesh::ARRAY_INDEX];
@@ -91,13 +94,18 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 
 	uint32_t vertex_stride = sizeof(float) * 3; //vector3 size
 	int normal_offset = vertex_stride;
-	if (vertex_buffer.size() / vertex_stride != vertex_array_out.size()) { //if not already equal likely also contains normals and tangents
-		//if check can be removed if subdivider is set to always just generate normals
-		vertex_stride += sizeof(int); //normal
-		vertex_stride += sizeof(int); //tangent
+	int tangent_offset = vertex_stride + sizeof(int);
+
+	if (vertex_buffer.size() / vertex_stride != vertex_array_out.size() && vertex_buffer.size() % vertex_array_out.size() == 0) {
+		vertex_stride = vertex_buffer.size() / vertex_array_out.size(); //if not already equal likely also contains normals and/or tangents
+		//if the division has a remainder data corrupted, will then autofail in condition below
 	}
 
 	ERR_FAIL_COND(vertex_buffer.size() / vertex_stride != vertex_array_out.size());
+
+	bool has_normals = vertex_stride >= sizeof(float) * 4;
+	bool has_tangents = vertex_stride >= sizeof(float) * 5; //TODO: tangents don't get returned because uv's not interpolated
+	// for skinning
 
 	for (int vertex_index = 0; vertex_index < vertex_array_out.size(); vertex_index++) {
 		memcpy(&vertex_write_buffer[vertex_index * vertex_stride], &vertex_array_out[vertex_index], sizeof(float) * 3);

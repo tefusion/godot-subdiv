@@ -50,13 +50,16 @@ protected:
 	int32_t subdiv_level;
 
 	Vector<Array> cached_data_array; //array of surfaces after blend shapes are applied, if empty (if no blendshapes) getter will return normal data array
-	HashMap<StringName, int> blend_shape_names;
-	Vector<float> blend_shape_values;
+	HashMap<StringName, int> blend_shape_properties;
+	Vector<float> blend_shape_tracks;
+	Vector<Ref<Material>> surface_override_materials;
 
 	void _resolve_skeleton_path();
 	void _update_subdiv();
 	Array _get_cached_data_array(int p_surface) const;
 	void _init_cached_data_array();
+	void _mesh_changed(); //if actual mesh property changes
+	void _subdiv_mesh_changed(); //if subdiv level changes, just needs to reapply override materials, cached_data stays
 
 protected:
 	static void _bind_methods();
@@ -83,6 +86,10 @@ public:
 
 	float get_blend_shape_value(int p_blend_shape) const;
 	void set_blend_shape_value(int p_blend_shape, float p_value);
+
+	int get_surface_override_material_count() const;
+	void set_surface_override_material(int p_surface, const Ref<Material> &p_material);
+	Ref<Material> get_surface_override_material(int p_surface) const;
 
 	SubdivMeshInstance3D();
 	~SubdivMeshInstance3D();

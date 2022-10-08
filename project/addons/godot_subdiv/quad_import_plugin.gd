@@ -70,6 +70,7 @@ func _convert_mesh_instances_recursively(node: Node, importer: GLTFQuadImporter,
 		elif i is AnimationPlayer:
 			if import_mode==GLTFQuadImporter.SUBDIV_MESHINSTANCE:
 				convert_animation_blend_shape_tracks(i)
+				
 		
 		_convert_mesh_instances_recursively(i, importer, import_mode, subdiv_level)
 		
@@ -83,7 +84,12 @@ func convert_animation_blend_shape_tracks(anim_player: AnimationPlayer):
 			for track_idx in range(0, animation.get_track_count()):
 				if animation.track_get_type(track_idx)==Animation.TYPE_BLEND_SHAPE:
 					var fake_anim=animation.add_track(Animation.TYPE_VALUE)
-					animation.track_set_path(fake_anim, animation.track_get_path(track_idx))
+					var old_track_path=animation.track_get_path(track_idx)
+					var node_name=String(old_track_path.get_name(0))
+					var blend_shape_name=String(old_track_path.get_subname(0))
+					var new_track_path=node_name+":"+"blend_shapes/"+blend_shape_name
+					animation.track_set_path(fake_anim, NodePath(new_track_path))
+					
 					for key_idx in range(0, animation.track_get_key_count(track_idx)):
 						var val=animation.track_get_key_value(track_idx, key_idx)
 						var time=animation.track_get_key_time(track_idx, key_idx)

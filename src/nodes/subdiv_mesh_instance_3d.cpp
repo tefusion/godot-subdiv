@@ -32,21 +32,21 @@ SOFTWARE.
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "subdivision/subdivision_server.hpp"
 
+#include <string>
+
 //editor functions
 void SubdivMeshInstance3D::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
+			_mesh_changed();
 			_resolve_skeleton_path();
-			_update_subdiv();
-			set_base(subdiv_mesh->get_rid());
-			update_gizmos();
 		} break;
 	}
 }
 
 void SubdivMeshInstance3D::_get_property_list(List<PropertyInfo> *p_list) const {
 	List<String> blend_shape_name_list;
-	for (const KeyValue<StringName, int> &E : blend_shape_names) {
+	for (const KeyValue<StringName, int> &E : blend_shape_properties) {
 		blend_shape_name_list.push_back(String(E.key));
 	}
 	blend_shape_name_list.sort();
@@ -55,28 +55,58 @@ void SubdivMeshInstance3D::_get_property_list(List<PropertyInfo> *p_list) const 
 		memcpy(blend_shape_name, blend_shape_name_list[blend_shape_pos].utf8().get_data(), blend_shape_name_list[blend_shape_pos].length() + 1);
 		p_list->push_back(PropertyInfo(Variant::FLOAT, blend_shape_name, PROPERTY_HINT_RANGE, "-1,1,0.00001"));
 	}
+
+	if (mesh.is_valid()) {
+		for (int i = 0; i < mesh->get_surface_count(); i++) {
+			std::string surface_override_name_string = "surface_material_override/" + std::to_string(i);
+			const char *surface_override_name = surface_override_name_string.c_str();
+			p_list->push_back(PropertyInfo(Variant::OBJECT, surface_override_name, PROPERTY_HINT_RESOURCE_TYPE, "BaseMaterial3D,ShaderMaterial", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_DEFERRED_SET_RESOURCE));
+		}
+	}
 }
 
-//only for blendshapes setter
+//only for blendshapes and surface overrride materials
 bool SubdivMeshInstance3D::_set(const StringName &p_name, const Variant &p_value) {
 	if (!get_instance().is_valid()) {
 		return false;
 	}
-	HashMap<StringName, int>::Iterator found = blend_shape_names.find(p_name);
+	HashMap<StringName, int>::ConstIterator found = blend_shape_properties.find(p_name);
 	if (found) {
 		set_blend_shape_value(found->value, p_value);
+		_update_subdiv();
 		return true;
 	}
+
+	if (String(p_name).begins_with("surface_material_override/")) {
+		int idx = String(p_name).get_slicec('/', 1).to_int();
+		if (idx >= surface_override_materials.size() || idx < 0) {
+			return false;
+		}
+		set_surface_override_material(idx, p_value);
+		return true;
+	}
+
 	return false;
 }
-//only for blendshapes getter
+
+//only for blendshapes and surface overrride materials
 bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value) const {
 	if (!get_instance().is_valid()) {
 		return false;
 	}
-	HashMap<StringName, int>::ConstIterator found = blend_shape_names.find(p_name);
+
+	HashMap<StringName, int>::ConstIterator found = blend_shape_properties.find(p_name);
 	if (found) {
 		return_value = get_blend_shape_value(found->value);
+		return true;
+	}
+
+	if (String(p_name).begins_with("surface_material_override/")) {
+		int idx = String(p_name).get_slicec('/', 1).to_int();
+		if (idx >= surface_override_materials.size() || idx < 0) {
+			return false;
+		}
+		return_value = surface_override_materials[idx];
 		return true;
 	}
 	return false;
@@ -86,11 +116,8 @@ bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value)
 void SubdivMeshInstance3D::set_mesh(const Ref<TopologyDataMesh> &p_mesh) {
 	mesh = p_mesh;
 	_init_cached_data_array();
-	//_initialize_helper_mesh();
 	if (is_inside_tree()) {
-		_update_subdiv();
-		set_base(subdiv_mesh->get_rid());
-		update_gizmos();
+		_mesh_changed();
 	}
 }
 
@@ -148,9 +175,9 @@ NodePath SubdivMeshInstance3D::get_skeleton_path() const {
 void SubdivMeshInstance3D::set_subdiv_level(int p_level) {
 	ERR_FAIL_COND(p_level < 0);
 	subdiv_level = p_level;
-
 	if (is_inside_tree()) {
 		_update_subdiv();
+		_subdiv_mesh_changed();
 	}
 }
 
@@ -160,22 +187,22 @@ int32_t SubdivMeshInstance3D::get_subdiv_level() {
 
 float SubdivMeshInstance3D::get_blend_shape_value(int p_blend_shape) const {
 	ERR_FAIL_COND_V(get_mesh().is_null(), 0.0);
-	ERR_FAIL_INDEX_V(p_blend_shape, (int)blend_shape_values.size(), 0);
-	return blend_shape_values[p_blend_shape];
+	ERR_FAIL_INDEX_V(p_blend_shape, (int)blend_shape_tracks.size(), 0);
+	return blend_shape_tracks[p_blend_shape];
 }
 
+//need to call update subdiv manually, removed cause this gets called too often at startup
 void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_value) {
-	ERR_FAIL_COND(get_mesh().is_null());
-	ERR_FAIL_INDEX(p_blend_shape, (int)blend_shape_values.size());
-	float last_value = blend_shape_values.get(p_blend_shape);
-	blend_shape_values.set(p_blend_shape, p_value);
+	ERR_FAIL_INDEX(p_blend_shape, (int)blend_shape_tracks.size());
+	float last_value = blend_shape_tracks.get(p_blend_shape);
+	blend_shape_tracks.set(p_blend_shape, p_value);
 
 	//update cached array, currently only updates vertex values
-	if (is_inside_tree()) {
-		ERR_FAIL_COND(cached_data_array.is_empty());
-		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
-			const Array &blend_shape_offset = get_mesh()->surface_get_single_blend_shape_array(surface_idx, p_blend_shape);
-			const Array &base_shape = get_mesh()->surface_get_arrays(surface_idx);
+	ERR_FAIL_COND(cached_data_array.is_empty());
+	if (mesh.is_valid()) {
+		for (int surface_idx = 0; surface_idx < mesh->get_surface_count(); surface_idx++) {
+			const Array &blend_shape_offset = mesh->surface_get_single_blend_shape_array(surface_idx, p_blend_shape);
+			const Array &base_shape = mesh->surface_get_arrays(surface_idx);
 			const PackedVector3Array &blend_shape_vertex_offsets = blend_shape_offset[TopologyDataMesh::ARRAY_VERTEX];
 			Array &target_surface = cached_data_array.write[surface_idx];
 			PackedVector3Array surface_vertex_array = target_surface[TopologyDataMesh::ARRAY_VERTEX]; //maybe reference, array makes that hard
@@ -186,7 +213,6 @@ void SubdivMeshInstance3D::set_blend_shape_value(int p_blend_shape, float p_valu
 			}
 			target_surface[TopologyDataMesh::ARRAY_VERTEX] = surface_vertex_array;
 		}
-		_update_subdiv();
 	}
 }
 
@@ -292,6 +318,11 @@ void SubdivMeshInstance3D::_resolve_skeleton_path() {
 }
 
 void SubdivMeshInstance3D::_update_subdiv() {
+	//this is to safe on computing power, only allow updating when actually shown/in tree
+	if (!is_inside_tree()) {
+		return;
+	}
+
 	if (get_mesh().is_null() && subdiv_mesh) {
 		subdiv_mesh->clear();
 		return;
@@ -300,6 +331,7 @@ void SubdivMeshInstance3D::_update_subdiv() {
 		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
 		ERR_FAIL_COND(!subdivision_server);
 		subdiv_mesh = Object::cast_to<SubdivisionMesh>(subdivision_server->create_subdivision_mesh(get_mesh(), subdiv_level));
+		set_base(subdiv_mesh->get_rid());
 	} else {
 		subdiv_mesh->_update_subdivision(get_mesh(), subdiv_level, cached_data_array);
 		if (skin_ref.is_valid()) { //would throw num_bones<=0 if used outside else
@@ -318,24 +350,70 @@ Array SubdivMeshInstance3D::_get_cached_data_array(int p_surface) const {
 	}
 }
 
-//also inits blend shape data values
+//before mesh changed
 void SubdivMeshInstance3D::_init_cached_data_array() {
 	cached_data_array.clear();
-	blend_shape_names.clear();
-	blend_shape_values.clear();
-	if (get_mesh().is_valid()) {
-		for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
-			cached_data_array.push_back(get_mesh()->surface_get_arrays(surface_idx));
-		}
-		if (get_mesh()->get_blend_shape_count() != blend_shape_names.size()) {
-			for (int blend_shape_idx = 0; blend_shape_idx < get_mesh()->get_blend_shape_count(); blend_shape_idx++) {
-				blend_shape_names.insert(get_mesh()->get_blend_shape_name(blend_shape_idx), blend_shape_idx);
-				blend_shape_values.push_back(0);
-			}
-		}
-
-		notify_property_list_changed();
+	for (int surface_idx = 0; surface_idx < get_mesh()->get_surface_count(); surface_idx++) {
+		cached_data_array.push_back(get_mesh()->surface_get_arrays(surface_idx));
 	}
+	surface_override_materials.resize(mesh->get_surface_count());
+}
+void SubdivMeshInstance3D::_mesh_changed() {
+	ERR_FAIL_COND(mesh.is_null());
+
+	uint32_t initialize_bs_from = blend_shape_tracks.size();
+	blend_shape_tracks.resize(mesh->get_blend_shape_count());
+
+	for (uint32_t i = 0; i < blend_shape_tracks.size(); i++) {
+		blend_shape_properties["blend_shapes/" + String(mesh->get_blend_shape_name(i))] = i;
+
+		//set_blend_shape_value changes mesh based on previous value so set to 0 before initializing
+		float tmp = blend_shape_tracks[i];
+		blend_shape_tracks.write[i] = 0;
+		if (i < initialize_bs_from) {
+			set_blend_shape_value(i, tmp);
+		} else {
+			set_blend_shape_value(i, 0);
+		}
+	}
+	_update_subdiv();
+	_subdiv_mesh_changed();
+
+	notify_property_list_changed();
+	update_gizmos();
+}
+
+void SubdivMeshInstance3D::_subdiv_mesh_changed() {
+	int surface_count = mesh->get_surface_count();
+	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
+		if (surface_override_materials[surface_index].is_valid()) {
+			RenderingServer::get_singleton()->instance_set_surface_override_material(get_instance(), surface_index, surface_override_materials[surface_index]->get_rid());
+		}
+	}
+}
+
+int SubdivMeshInstance3D::get_surface_override_material_count() const {
+	return surface_override_materials.size();
+}
+
+void SubdivMeshInstance3D::set_surface_override_material(int p_surface, const Ref<Material> &p_material) {
+	ERR_FAIL_INDEX(p_surface, surface_override_materials.size());
+
+	surface_override_materials.write[p_surface] = p_material;
+
+	if (subdiv_mesh) {
+		if (surface_override_materials[p_surface].is_valid()) {
+			RenderingServer::get_singleton()->instance_set_surface_override_material(get_instance(), p_surface, surface_override_materials[p_surface]->get_rid());
+		} else {
+			RenderingServer::get_singleton()->instance_set_surface_override_material(get_instance(), p_surface, RID());
+		}
+	}
+}
+
+Ref<Material> SubdivMeshInstance3D::get_surface_override_material(int p_surface) const {
+	ERR_FAIL_INDEX_V(p_surface, surface_override_materials.size(), Ref<Material>());
+
+	return surface_override_materials[p_surface];
 }
 
 void SubdivMeshInstance3D::_bind_methods() {
@@ -356,6 +434,10 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_blend_shape_value", "blend_shape_idx"), &SubdivMeshInstance3D::get_blend_shape_value);
 	ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
 
+	ClassDB::bind_method(D_METHOD("get_surface_override_material_count"), &SubdivMeshInstance3D::get_surface_override_material_count);
+	ClassDB::bind_method(D_METHOD("set_surface_override_material"), &SubdivMeshInstance3D::set_surface_override_material);
+	ClassDB::bind_method(D_METHOD("get_surface_override_material"), &SubdivMeshInstance3D::get_surface_override_material);
+
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "mesh", PROPERTY_HINT_RESOURCE_TYPE, "TopologyDataMesh"), "set_mesh", "get_mesh");
 	ADD_GROUP("Skeleton", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "skin", PROPERTY_HINT_RESOURCE_TYPE, "Skin"), "set_skin", "get_skin");
@@ -363,7 +445,6 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ADD_GROUP("Subdivision", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");
 	ADD_GROUP("", "");
-	ADD_GROUP("Blend Shapes", "");
 }
 
 SubdivMeshInstance3D::SubdivMeshInstance3D() {
