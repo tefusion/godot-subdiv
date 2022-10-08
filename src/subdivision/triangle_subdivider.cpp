@@ -17,7 +17,6 @@ Array TriangleSubdivider::_get_triangle_arrays() const {
 
 	st->begin(Mesh::PRIMITIVE_TRIANGLES);
 	for (int index = 0; index < topology_data.index_array.size(); index++) {
-		st->add_vertex(topology_data.vertex_array[topology_data.index_array[index]]);
 		if (use_uv) {
 			st->set_uv(topology_data.uv_array[topology_data.uv_index_array[index]]);
 		}
@@ -34,6 +33,7 @@ Array TriangleSubdivider::_get_triangle_arrays() const {
 			st->set_bones(bones_array);
 			st->set_weights(weights_array);
 		}
+		st->add_vertex(topology_data.vertex_array[topology_data.index_array[index]]);
 		st->add_index(index);
 	}
 
