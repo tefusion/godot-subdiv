@@ -18,13 +18,13 @@
 Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type) {
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
-			QuadSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
+			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
-			TriangleSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			Ref<TriangleSubdivider> subdivider = memnew(TriangleSubdivider);
+			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
 		}
 
 		default:
@@ -77,7 +77,6 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	v_arrays.resize(TopologyDataMesh::ARRAY_MAX);
 	v_arrays[TopologyDataMesh::ARRAY_VERTEX] = new_vertex_array;
 	v_arrays[TopologyDataMesh::ARRAY_INDEX] = index_array;
-	QuadSubdivider subdivider;
 
 	//TODO: also update normals
 	// for putting it into an int look in immediate mesh (just shift and clamp each value to fit into 30 bits total)

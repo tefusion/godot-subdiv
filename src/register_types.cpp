@@ -17,6 +17,7 @@
 
 #include "subdivision/quad_subdivider.hpp"
 #include "subdivision/subdivider.hpp"
+#include "subdivision/triangle_subdivider.hpp"
 #ifdef TESTS_ENABLED
 #include "subdiv_test.hpp"
 #endif
@@ -29,6 +30,8 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		ClassDB::register_class<Subdivider>();
 		ClassDB::register_class<QuadSubdivider>();
+		ClassDB::register_class<TriangleSubdivider>();
+
 		ClassDB::register_class<SubdivisionServer>();
 		ClassDB::register_class<SubdivisionMesh>();
 		ClassDB::register_class<SubdivisionBaker>();
@@ -45,8 +48,8 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 
 #ifdef TESTS_ENABLED
 		ClassDB::register_class<SubdivTest>();
-		SubdivTest subdiv_test;
-		subdiv_test.run_tests();
+		Ref<SubdivTest> subdiv_test = memnew(SubdivTest);
+		subdiv_test->run_tests();
 #endif
 	}
 }

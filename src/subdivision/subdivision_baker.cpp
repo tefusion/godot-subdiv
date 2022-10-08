@@ -6,13 +6,13 @@
 Array SubdivisionBaker::get_baked_arrays(const Array &topology_arrays, int p_level, int64_t p_format, TopologyDataMesh::TopologyType topology_type) {
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
-			QuadSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
+			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
-			TriangleSubdivider subdivider;
-			return subdivider.get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			Ref<TriangleSubdivider> subdivider = memnew(TriangleSubdivider);
+			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
 		}
 
 		default:

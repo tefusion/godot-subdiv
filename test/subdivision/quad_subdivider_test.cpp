@@ -11,8 +11,8 @@ TEST_CASE("simple cube test") {
 	const Array arr = a->surface_get_arrays(0);
 	int32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
 	surface_format &= Mesh::ARRAY_FORMAT_INDEX;
-	QuadSubdivider quad_subdivider;
-	Array result = quad_subdivider.get_subdivided_arrays(arr, 1, a->surface_get_format(0), true);
+	Ref<QuadSubdivider> quad_subdivider = memnew(QuadSubdivider);
+	Array result = quad_subdivider->get_subdivided_arrays(arr, 1, a->surface_get_format(0), true);
 	const PackedVector3Array &vertex_array = result[Mesh::ARRAY_VERTEX];
 	const PackedVector3Array &normal_array = result[Mesh::ARRAY_NORMAL];
 	const PackedInt32Array &index_array = result[Mesh::ARRAY_INDEX];
@@ -29,8 +29,8 @@ TEST_CASE("compare with subdivided") {
 	const Array arr = a->surface_get_arrays(0);
 	int32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
 	surface_format &= Mesh::ARRAY_FORMAT_INDEX;
-	QuadSubdivider quad_subdivider;
-	Array result = quad_subdivider.get_subdivided_topology_arrays(arr, 1, a->surface_get_format(0), true);
+	Ref<QuadSubdivider> quad_subdivider = memnew(QuadSubdivider);
+	Array result = quad_subdivider->get_subdivided_topology_arrays(arr, 1, a->surface_get_format(0), true);
 	const PackedVector3Array &vertex_array = result[TopologyDataMesh::ARRAY_VERTEX];
 	const PackedVector3Array &normal_array = result[TopologyDataMesh::ARRAY_NORMAL];
 	const PackedInt32Array &index_array = result[TopologyDataMesh::ARRAY_INDEX];
@@ -62,8 +62,8 @@ TEST_CASE("subdiv level zero") {
 
 	int32_t p_format = Mesh::ARRAY_FORMAT_VERTEX;
 	p_format &= Mesh::ARRAY_FORMAT_INDEX;
-	QuadSubdivider subdivider;
-	Array result = subdivider.get_subdivided_arrays(arr, 0, p_format, false);
+	Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
+	Array result = subdivider->get_subdivided_arrays(arr, 0, p_format, false);
 	CHECK(result.size() == Mesh::ARRAY_MAX); //TODO: make a test suite that calls all these for each input
 	const PackedVector3Array &result_vertex_array = result[Mesh::ARRAY_VERTEX];
 	const PackedInt32Array &result_index_array = result[Mesh::ARRAY_INDEX];

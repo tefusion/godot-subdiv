@@ -5,11 +5,11 @@
 
 //just checks for non empty usable data
 TEST_CASE("Simple bake") {
-	SubdivisionBaker baker;
+	Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
 	Ref<TopologyDataMesh> source_mesh = ResourceLoader::get_singleton()->load("res://test/skinning_test.tres");
 	Ref<ImporterMesh> importer_mesh;
 	importer_mesh.instantiate();
-	importer_mesh = baker.get_importer_mesh(importer_mesh, source_mesh, 2);
+	importer_mesh = baker->get_importer_mesh(importer_mesh, source_mesh, 2);
 
 	Array result_arrays = importer_mesh->get_surface_arrays(0);
 	CHECK(!result_arrays.is_empty());

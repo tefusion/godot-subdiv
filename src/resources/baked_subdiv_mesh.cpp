@@ -25,7 +25,7 @@ int BakedSubdivMesh::get_subdiv_level() const {
 
 void BakedSubdivMesh::_update_subdiv() {
 	if (data_mesh.is_valid()) {
-		SubdivisionBaker baker;
+		Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
 		_clear();
 
 		//add blendshapes
@@ -40,14 +40,14 @@ void BakedSubdivMesh::_update_subdiv() {
 			const Array &source_arrays = data_mesh->surface_get_arrays(surface_index);
 			int64_t p_format = data_mesh->surface_get_format(surface_index);
 			TopologyDataMesh::TopologyType topology_type = data_mesh->surface_get_topology_type(surface_index);
-			const Array &triangle_arrays = baker.get_baked_arrays(source_arrays,
+			const Array &triangle_arrays = baker->get_baked_arrays(source_arrays,
 					subdiv_level, p_format, topology_type);
 
 			//bake blendshapes
 			TypedArray<Array> baked_blend_shape_arrays;
 			if (data_mesh->get_blend_shape_count() > 0) {
 				const Array &blend_shape_arrays = data_mesh->surface_get_blend_shape_arrays(surface_index);
-				baked_blend_shape_arrays = baker.get_baked_blend_shape_arrays(source_arrays, blend_shape_arrays,
+				baked_blend_shape_arrays = baker->get_baked_blend_shape_arrays(source_arrays, blend_shape_arrays,
 						subdiv_level, p_format, topology_type);
 			}
 			add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, triangle_arrays, baked_blend_shape_arrays, Dictionary(), 0);

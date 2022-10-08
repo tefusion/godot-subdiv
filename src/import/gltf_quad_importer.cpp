@@ -48,7 +48,8 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
 	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
 
-	TopologyDataMesh *quad_mesh = memnew(TopologyDataMesh);
+	Ref<TopologyDataMesh> quad_mesh;
+	quad_mesh.instantiate();
 	quad_mesh->set_name(p_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
@@ -90,30 +91,19 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	p_meshinstance->queue_free();
 }
 
-void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinstance_object, ImportMode import_mode, int32_t subdiv_level) {
-	ImporterMeshInstance3D *importer_mesh_instance = Object::cast_to<ImporterMeshInstance3D>(p_meshinstance_object);
+void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_mesh_instance_object, ImportMode import_mode, int32_t subdiv_level) {
+	ImporterMeshInstance3D *importer_mesh_instance = Object::cast_to<ImporterMeshInstance3D>(importer_mesh_instance_object);
 	Ref<ImporterMesh> importer_mesh = importer_mesh_instance->get_mesh();
 	ERR_FAIL_COND_MSG(importer_mesh.is_null(), "Mesh is null");
 
 	//if arraymesh and subdiv_level 0 just normal import
 	if (import_mode == ImportMode::ARRAY_MESH && subdiv_level == 0) {
-		MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
-		Ref<ArrayMesh> array_mesh;
-		array_mesh.instantiate();
-		array_mesh = importer_mesh->get_mesh(array_mesh);
-		mesh_instance->set_skeleton_path(importer_mesh_instance->get_skeleton_path());
-		if (!importer_mesh_instance->get_skin().is_null()) {
-			mesh_instance->set_skin(importer_mesh_instance->get_skin());
-		}
-		mesh_instance->set_transform(importer_mesh_instance->get_transform());
-		StringName mesh_instance_name = importer_mesh_instance->get_name();
-		mesh_instance->set_mesh(array_mesh);
-		importer_mesh_instance->replace_by(mesh_instance, false);
-		mesh_instance->set_name(mesh_instance_name);
+		_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance);
 		return;
 	}
 
-	TopologyDataMesh *topology_data_mesh = memnew(TopologyDataMesh);
+	Ref<TopologyDataMesh> topology_data_mesh;
+	topology_data_mesh.instantiate();
 	topology_data_mesh->set_name(importer_mesh->get_name());
 	// generate quad_mesh data
 	for (int surface_index = 0; surface_index < importer_mesh->get_surface_count(); surface_index++) {
@@ -180,8 +170,8 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *p_meshinsta
 			Ref<ImporterMesh> subdiv_importer_mesh;
 			subdiv_importer_mesh.instantiate();
 
-			SubdivisionBaker baker;
-			subdiv_importer_mesh = baker.get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level, true);
+			Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
+			subdiv_importer_mesh = baker->get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level, true);
 			importer_mesh_instance->set_mesh(subdiv_importer_mesh);
 			MeshInstance3D *mesh_instance = Object::cast_to<MeshInstance3D>(_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance));
 			break;
@@ -435,6 +425,6 @@ Object *GLTFQuadImporter::_replace_importer_mesh_instance_with_mesh_instance(Obj
 	mesh_instance->set_mesh(array_mesh);
 	importer_mesh_instance->replace_by(mesh_instance, false);
 	mesh_instance->set_name(mesh_instance_name);
-	importer_mesh_instance->queue_free();
+	importer_mesh_instance->queue_free(); //TODO: queue free doesn't actually work
 	return mesh_instance;
 }
