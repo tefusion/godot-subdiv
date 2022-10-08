@@ -384,27 +384,27 @@ Array GLTFQuadImporter::_generate_packed_blend_shapes(const Array &tri_blend_sha
 	return packed_blend_shape_array;
 }
 
-//TODO: maybe godot has a function for this so there's no need for this mess to get the format
-//the importer mesh format is a lie and just gives a flag
 int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
+	ERR_FAIL_COND_V(arrays.size() != Mesh::ARRAY_MAX, 0);
 	int32_t format = 0;
-	if (arrays[Mesh::ARRAY_VERTEX])
+
+	if (arrays[Mesh::ARRAY_VERTEX].get_type() == Variant::PACKED_VECTOR3_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_VERTEX;
-	if (arrays[Mesh::ARRAY_NORMAL])
+	if (arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_NORMAL;
-	if (arrays[Mesh::ARRAY_TANGENT])
+	if (arrays[Mesh::ARRAY_TANGENT].get_type() == Variant::PACKED_FLOAT32_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_TANGENT;
-	if (arrays[Mesh::ARRAY_COLOR])
+	if (arrays[Mesh::ARRAY_COLOR].get_type() == Variant::PACKED_COLOR_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_COLOR;
-	if (arrays[Mesh::ARRAY_TEX_UV])
+	if (arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_TEX_UV;
-	if (arrays[Mesh::ARRAY_TEX_UV2])
+	if (arrays[Mesh::ARRAY_TEX_UV2].get_type() == Variant::PACKED_VECTOR2_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_TEX_UV2;
-	if (arrays[Mesh::ARRAY_BONES])
+	if (arrays[Mesh::ARRAY_BONES].get_type() == Variant::PACKED_INT32_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_BONES;
-	if (arrays[Mesh::ARRAY_WEIGHTS])
+	if (arrays[Mesh::ARRAY_WEIGHTS].get_type() == Variant::PACKED_FLOAT32_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_WEIGHTS;
-	if (arrays[Mesh::ARRAY_INDEX])
+	if (arrays[Mesh::ARRAY_INDEX].get_type() == Variant::PACKED_INT32_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_INDEX;
 
 	//check for custom stuff, probably could extract from flag, but this should work
@@ -418,7 +418,7 @@ int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
 	return format;
 }
 
-//
+//need to cast back to MeshInstance after. Actually changes scene and switches importer meshinstance to meshinstance
 Object *GLTFQuadImporter::_replace_importer_mesh_instance_with_mesh_instance(Object *importer_mesh_instance_object) {
 	ImporterMeshInstance3D *importer_mesh_instance = Object::cast_to<ImporterMeshInstance3D>(importer_mesh_instance_object);
 	MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
