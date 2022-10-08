@@ -65,6 +65,7 @@ func _convert_string_to_import_mode(enum_string: String) -> int:
 
 func _convert_mesh_instances_recursively(node: Node, importer: GLTFQuadImporter, import_mode: int, subdiv_level: int):
 	for i in node.get_children():
+		_convert_mesh_instances_recursively(i, importer, import_mode, subdiv_level)
 		if i is ImporterMeshInstance3D:
 			importer.convert_importer_meshinstance_to_quad(i, import_mode, subdiv_level)
 		elif i is AnimationPlayer:
@@ -72,7 +73,7 @@ func _convert_mesh_instances_recursively(node: Node, importer: GLTFQuadImporter,
 				convert_animation_blend_shape_tracks(i)
 				
 		
-		_convert_mesh_instances_recursively(i, importer, import_mode, subdiv_level)
+		
 		
 
 #blend shape tracks don't work with SubdivMeshInstance3D

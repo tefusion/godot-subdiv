@@ -88,7 +88,7 @@ void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_objec
 	// replace importermeshinstance in scene
 	p_meshinstance->replace_by(subdiv_mesh_instance, false);
 	subdiv_mesh_instance->set_name(quad_mesh_instance_name);
-	p_meshinstance->queue_free();
+	memdelete(p_meshinstance);
 }
 
 void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_mesh_instance_object, ImportMode import_mode, int32_t subdiv_level) {
@@ -151,7 +151,7 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_me
 			// replace importermeshinstance in scene
 			importer_mesh_instance->replace_by(subdiv_mesh_instance, false);
 			subdiv_mesh_instance->set_name(mesh_instance_name);
-			importer_mesh_instance->queue_free();
+			memdelete(importer_mesh_instance);
 			break;
 		}
 		case ImportMode::BAKED_SUBDIV_MESH: {
@@ -425,6 +425,6 @@ Object *GLTFQuadImporter::_replace_importer_mesh_instance_with_mesh_instance(Obj
 	mesh_instance->set_mesh(array_mesh);
 	importer_mesh_instance->replace_by(mesh_instance, false);
 	mesh_instance->set_name(mesh_instance_name);
-	importer_mesh_instance->queue_free(); //TODO: queue free doesn't actually work
+	memdelete(importer_mesh_instance);
 	return mesh_instance;
 }

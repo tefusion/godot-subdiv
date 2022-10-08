@@ -10,7 +10,8 @@ func _post_import(scene):
 
 func _convert_mesh_instances_recursively(node: Node, importer: GLTFQuadImporter):
 	for i in node.get_children():
+		_convert_mesh_instances_recursively(i, importer)
 		if i is MeshInstance3D:
 			importer.convert_meshinstance_to_quad(i)
 		
-		_convert_mesh_instances_recursively(i, importer)
+		
