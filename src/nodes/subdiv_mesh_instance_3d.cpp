@@ -265,9 +265,9 @@ void SubdivMeshInstance3D::_update_skinning() {
 				float bone_weight = weights_array[offset + bone_idx];
 				int bone = bones_array[offset + bone_idx];
 				origin += bone_weight * bone_transforms[bone].origin;
-				basis_x += bone_weight * bone_transforms[bone].basis.get_axis(0);
-				basis_y += bone_weight * bone_transforms[bone].basis.get_axis(1);
-				basis_z += bone_weight * bone_transforms[bone].basis.get_axis(2);
+				basis_x += bone_weight * bone_transforms[bone].basis.get_column(0);
+				basis_y += bone_weight * bone_transforms[bone].basis.get_column(1);
+				basis_z += bone_weight * bone_transforms[bone].basis.get_column(2);
 			}
 			Transform3D transform;
 			transform.origin = origin;

@@ -1,5 +1,5 @@
 """
-For building basic release do scons target=debug within this folder.
+For building basic release do scons target=template_debug within this folder.
 
 For building tests do scons -Q tests=1
 
@@ -69,14 +69,14 @@ if (run_tests):
 (extension_path,) = glob("project/addons/*/*.gdextension")
 
 # Find the addon path
-addon_path = Path(extension_path).parent
+addon_path = "project/addons/godot_subdiv"
 
 # Find the extension name from the gdextension file (e.g. example).
-extension_name = Path(extension_path).stem
+extension_name = "godot_subdiv"
 
 
 # Create the library target
-if env["platform"] == "osx":
+if env["platform"] == "macos":
     library = env.SharedLibrary(
         "{}/bin/lib{}.{}.{}.framework/{1}.{2}.{3}".format(
             addon_path,
@@ -88,13 +88,11 @@ if env["platform"] == "osx":
     )
 else:
     library = env.SharedLibrary(
-        "{}/bin/lib{}.{}.{}.{}{}".format(
+        "{}/bin/lib{}{}{}".format(
             addon_path,
             extension_name,
-            env["platform"],
-            env["target"],
-            env["arch_suffix"],
-            env["SHLIBSUFFIX"],
+            env["suffix"],
+            env["SHLIBSUFFIX"]
         ),
         source=sources,
     )

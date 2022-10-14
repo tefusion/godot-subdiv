@@ -28,13 +28,13 @@ To build this project you need to have SCons installed, otherwise everything is 
 \
 For just building and trying out the project do
 ```bash
-scons target=debug
+scons target=template_debug
 ```
 in the cloned folder. 
 
 For running the tests do
 ```
-scons -Q tests=1 target=debug
+scons -Q tests=1 target=template_debug
 ```
 which will run simple doctest tests when starting godot on the terminal:
 ```
@@ -57,7 +57,7 @@ In Blender you can go in Edit Mode and go Select->Select All by Trait->Faces by 
 
 ## Last tested Godot version
 
-Godot 4 Beta 2
+Godot 4 Beta 3
 ## License
 
 [MIT](LICENSE)

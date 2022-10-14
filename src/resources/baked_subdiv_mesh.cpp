@@ -97,7 +97,4 @@ void BakedSubdivMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_subdiv_level", "subdiv_level"), &BakedSubdivMesh::set_subdiv_level);
 	ClassDB::bind_method(D_METHOD("get_subdiv_level"), &BakedSubdivMesh::get_subdiv_level);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");
-
-	//virtuals of mesh
-	BakedSubdivMesh::register_virtuals<Mesh>();
 }

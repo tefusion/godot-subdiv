@@ -194,7 +194,4 @@ void TopologyDataMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_get_data"), &TopologyDataMesh::_get_data);
 
 	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
-
-	//virtuals of mesh
-	TopologyDataMesh::register_virtuals<Mesh>();
 }
