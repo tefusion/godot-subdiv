@@ -1,4 +1,4 @@
-#include "gltf_quad_importer.hpp"
+#include "topology_data_importer.hpp"
 
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/hash_set.hpp"
@@ -15,21 +15,21 @@
 #include "resources/baked_subdiv_mesh.hpp"
 #include "subdivision/subdivision_baker.hpp"
 
-GLTFQuadImporter::GLTFQuadImporter() {
+TopologyDataImporter::TopologyDataImporter() {
 }
 
-GLTFQuadImporter::~GLTFQuadImporter() {
+TopologyDataImporter::~TopologyDataImporter() {
 }
 
-void GLTFQuadImporter::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("convert_importer_meshinstance_to_quad"), &GLTFQuadImporter::convert_importer_meshinstance_to_quad);
-	ClassDB::bind_method(D_METHOD("convert_meshinstance_to_quad", "MeshInstance3D"), &GLTFQuadImporter::convert_meshinstance_to_quad);
+void TopologyDataImporter::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("convert_importer_meshinstance_to_subdiv"), &TopologyDataImporter::convert_importer_meshinstance_to_subdiv);
 	BIND_ENUM_CONSTANT(SUBDIV_MESHINSTANCE);
 	BIND_ENUM_CONSTANT(BAKED_SUBDIV_MESH);
 	BIND_ENUM_CONSTANT(ARRAY_MESH);
+	BIND_ENUM_CONSTANT(IMPORTER_MESH)
 }
 
-GLTFQuadImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
+TopologyDataImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
 	vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
 	normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
 	index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
@@ -43,60 +43,15 @@ GLTFQuadImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_a
 		weights_array = p_mesh_arrays[Mesh::ARRAY_WEIGHTS];
 }
 
-void GLTFQuadImporter::convert_meshinstance_to_quad(Object *p_meshinstance_object) {
-	MeshInstance3D *p_meshinstance = Object::cast_to<MeshInstance3D>(p_meshinstance_object);
-	Ref<ArrayMesh> p_mesh = p_meshinstance->get_mesh();
-	ERR_FAIL_COND_MSG(p_mesh.is_null(), "Mesh is null");
-
-	Ref<TopologyDataMesh> quad_mesh;
-	quad_mesh.instantiate();
-	quad_mesh->set_name(p_mesh->get_name());
-	// generate quad_mesh data
-	for (int surface_index = 0; surface_index < p_mesh->get_surface_count(); surface_index++) {
-		//convert actual mesh arrays to quad data
-		Array p_arrays = p_mesh->surface_get_arrays(surface_index);
-		int32_t format = p_mesh->surface_get_format(surface_index);
-		Array surface_arrays;
-		TopologyDataMesh::TopologyType topology_type = _generate_topology_surface_arrays(SurfaceVertexArrays(p_arrays), format, surface_arrays);
-
-		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
-		Array blend_shape_arrays = p_mesh->surface_get_blend_shape_arrays(surface_index);
-		Array quad_blend_shape_arrays;
-		if (!blend_shape_arrays.is_empty()) {
-			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
-		} //TODO: blend shape data also contains ARRAY_NORMAL and ARRAY_TANGENT, considering normals get generated for subdivisions won't get added for now
-
-		ERR_FAIL_COND(!surface_arrays.size());
-		quad_mesh->add_surface(surface_arrays, quad_blend_shape_arrays, p_mesh->surface_get_material(surface_index),
-				p_mesh->surface_get_name(surface_index), format, topology_type);
-	}
-	//actually add blendshapes to data
-	for (int blend_shape_idx = 0; blend_shape_idx < p_mesh->get_blend_shape_count(); blend_shape_idx++) {
-		quad_mesh->add_blend_shape_name(p_mesh->get_blend_shape_name(blend_shape_idx));
-	}
-
-	SubdivMeshInstance3D *subdiv_mesh_instance = memnew(SubdivMeshInstance3D);
-	// skin data and such are not changed and will just be applied to generated helper triangle mesh later.
-	subdiv_mesh_instance->set_skeleton_path(p_meshinstance->get_skeleton_path());
-	if (!p_meshinstance->get_skin().is_null()) {
-		subdiv_mesh_instance->set_skin(p_meshinstance->get_skin());
-	}
-	subdiv_mesh_instance->set_transform(p_meshinstance->get_transform());
-	StringName quad_mesh_instance_name = p_meshinstance->get_name();
-	subdiv_mesh_instance->set_mesh(quad_mesh);
-
-	// replace importermeshinstance in scene
-	p_meshinstance->replace_by(subdiv_mesh_instance, false);
-	subdiv_mesh_instance->set_name(quad_mesh_instance_name);
-	memdelete(p_meshinstance);
-}
-
-void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_mesh_instance_object, ImportMode import_mode, int32_t subdiv_level) {
+void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *importer_mesh_instance_object, ImportMode import_mode, int32_t subdiv_level) {
 	ImporterMeshInstance3D *importer_mesh_instance = Object::cast_to<ImporterMeshInstance3D>(importer_mesh_instance_object);
 	Ref<ImporterMesh> importer_mesh = importer_mesh_instance->get_mesh();
 	ERR_FAIL_COND_MSG(importer_mesh.is_null(), "Mesh is null");
 
-	//if arraymesh and subdiv_level 0 just normal import
+	//handle cases that don't need to generate TopologyDataMesh
+	if (import_mode == ImportMode::IMPORTER_MESH && subdiv_level == 0) {
+		return;
+	}
 	if (import_mode == ImportMode::ARRAY_MESH && subdiv_level == 0) {
 		_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance);
 		return;
@@ -116,16 +71,16 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_me
 
 		//convert all blend shapes in the exact same way (BlendShapeArrays are also just an Array with the size of ARRAY_MAX and data offsets)
 		Array blend_shape_arrays;
-		Array quad_blend_shape_arrays;
+		Array topology_data_blend_shape_arrays;
 		for (int blend_shape_idx = 0; blend_shape_idx < importer_mesh->get_blend_shape_count(); blend_shape_idx++) {
 			blend_shape_arrays.push_back(importer_mesh->get_surface_blend_shape_arrays(surface_index, blend_shape_idx));
 		}
 		if (!blend_shape_arrays.is_empty()) {
-			quad_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
+			topology_data_blend_shape_arrays = _generate_packed_blend_shapes(blend_shape_arrays, p_arrays[Mesh::ARRAY_INDEX], p_arrays[Mesh::ARRAY_VERTEX]);
 		}
 
 		ERR_FAIL_COND(!surface_arrays.size());
-		topology_data_mesh->add_surface(surface_arrays, quad_blend_shape_arrays,
+		topology_data_mesh->add_surface(surface_arrays, topology_data_blend_shape_arrays,
 				importer_mesh->get_surface_material(surface_index), importer_mesh->get_surface_name(surface_index), format, topology_type);
 	}
 	//actually add blendshapes to data
@@ -166,14 +121,17 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_me
 			mesh_instance->set_mesh(subdiv_mesh);
 			break;
 		}
-		case ImportMode::ARRAY_MESH: {
+		case ImportMode::ARRAY_MESH:
+		case ImportMode::IMPORTER_MESH: {
 			Ref<ImporterMesh> subdiv_importer_mesh;
 			subdiv_importer_mesh.instantiate();
 
 			Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
 			subdiv_importer_mesh = baker->get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level, true);
 			importer_mesh_instance->set_mesh(subdiv_importer_mesh);
-			MeshInstance3D *mesh_instance = Object::cast_to<MeshInstance3D>(_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance));
+			if (import_mode == ImportMode::ARRAY_MESH) {
+				MeshInstance3D *mesh_instance = Object::cast_to<MeshInstance3D>(_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance));
+			}
 			break;
 		}
 		default:
@@ -182,22 +140,22 @@ void GLTFQuadImporter::convert_importer_meshinstance_to_quad(Object *importer_me
 	}
 }
 
-TopologyDataMesh::TopologyType GLTFQuadImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays) {
+TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays) {
 	ERR_FAIL_COND_V(!(format & Mesh::ARRAY_FORMAT_INDEX), TopologyDataMesh::TopologyType::QUAD);
-	QuadSurfaceData quad_surface = _remove_duplicate_vertices(surface, format);
-	bool is_quad = _merge_to_quads(quad_surface.index_array, quad_surface.uv_array, format);
+	TopologySurfaceData topology_surface = _remove_duplicate_vertices(surface, format);
+	bool is_quad = _merge_to_quads(topology_surface.index_array, topology_surface.uv_array, format);
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	surface_arrays.resize(TopologyDataMesh::ARRAY_MAX);
-	surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = quad_surface.vertex_array;
-	surface_arrays[TopologyDataMesh::ARRAY_NORMAL] = quad_surface.normal_array;
+	surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = topology_surface.vertex_array;
+	surface_arrays[TopologyDataMesh::ARRAY_NORMAL] = topology_surface.normal_array;
 	// surface_arrays[Mesh::ARRAY_TANGENT]
-	surface_arrays[TopologyDataMesh::ARRAY_BONES] = quad_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
-	surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = quad_surface.weights_array;
-	surface_arrays[TopologyDataMesh::ARRAY_INDEX] = quad_surface.index_array;
+	surface_arrays[TopologyDataMesh::ARRAY_BONES] = topology_surface.bones_array; // TODO: docs say bones array can also be floats, might cause issues
+	surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = topology_surface.weights_array;
+	surface_arrays[TopologyDataMesh::ARRAY_INDEX] = topology_surface.index_array;
 	if (has_uv) {
-		PackedInt32Array uv_index_array = _generate_uv_index_array(quad_surface.uv_array);
-		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = quad_surface.uv_array;
+		PackedInt32Array uv_index_array = _generate_uv_index_array(topology_surface.uv_array);
+		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = topology_surface.uv_array;
 		surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = uv_index_array;
 	} else { //this is to avoid issues with casting null to Array when using these as reference
 		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
@@ -211,7 +169,7 @@ TopologyDataMesh::TopologyType GLTFQuadImporter::_generate_topology_surface_arra
 	}
 }
 
-GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format) {
+TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format) {
 	//these booleans decide what data gets stored, could be used directly with format, but I think this is more readable
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 	bool has_skinning = (format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS);
@@ -219,29 +177,29 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 	bool has_normals = format & Mesh::ARRAY_FORMAT_NORMAL;
 	//TODO: maybe add tangents, uv2 here too, considering that data is lost after subdivisions not that urgent
 
-	QuadSurfaceData quad_surface;
+	TopologySurfaceData topology_surface;
 	int max_index = 0;
 	HashMap<Vector3, int> original_verts;
 	for (int vert_index = 0; vert_index < surface.index_array.size(); vert_index++) {
 		int index = surface.index_array[vert_index];
 		if (original_verts.has(surface.vertex_array[index])) {
-			quad_surface.index_array.append(original_verts.get(surface.vertex_array[index]));
+			topology_surface.index_array.append(original_verts.get(surface.vertex_array[index]));
 		} else {
-			quad_surface.vertex_array.append(surface.vertex_array[index]);
+			topology_surface.vertex_array.append(surface.vertex_array[index]);
 			if (has_normals) {
-				quad_surface.normal_array.append(surface.normal_array[index]);
+				topology_surface.normal_array.append(surface.normal_array[index]);
 			}
 
 			// weights and bones arrays to corresponding vertex (4 weights per vert)
 			if (has_skinning) {
 				int bone_weights_per_vert = double_bone_weights ? 8 : 4;
 				for (int weight_index = index * bone_weights_per_vert; weight_index < (index + 1) * bone_weights_per_vert; weight_index++) {
-					quad_surface.weights_array.append(surface.weights_array[weight_index]);
-					quad_surface.bones_array.append(surface.bones_array[weight_index]);
+					topology_surface.weights_array.append(surface.weights_array[weight_index]);
+					topology_surface.bones_array.append(surface.bones_array[weight_index]);
 				}
 			}
 
-			quad_surface.index_array.append(max_index);
+			topology_surface.index_array.append(max_index);
 
 			original_verts.insert(surface.vertex_array[index], max_index);
 
@@ -250,16 +208,16 @@ GLTFQuadImporter::QuadSurfaceData GLTFQuadImporter::_remove_duplicate_vertices(c
 
 		// always if uv's exist
 		if (has_uv) {
-			quad_surface.uv_array.append(surface.uv_array[index]);
+			topology_surface.uv_array.append(surface.uv_array[index]);
 		}
 	}
 
-	return quad_surface;
+	return topology_surface;
 }
 
 // Goes through index_array and always merges the 6 indices of 2 triangles to 1 quad (uv_array also updated)
 // returns boolean if conversion to quad was successful
-bool GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format) {
+bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format) {
 	if (index_array.size() % 6 != 0) {
 		return false;
 	}
@@ -322,7 +280,7 @@ bool GLTFQuadImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVect
 // tries to store uv's as compact as possible with an index array, an additional index array
 // is needed for uv data, because the index array for the vertices connects faces while uv's
 // can still be different for faces even when it's the same vertex, works similar to _remove_duplicate_vertices
-PackedInt32Array GLTFQuadImporter::_generate_uv_index_array(PackedVector2Array &uv_array) {
+PackedInt32Array TopologyDataImporter::_generate_uv_index_array(PackedVector2Array &uv_array) {
 	ERR_FAIL_COND_V(uv_array.is_empty(), PackedInt32Array());
 	int max_index = 0;
 	HashMap<Vector2, int> found_uvs;
@@ -344,7 +302,7 @@ PackedInt32Array GLTFQuadImporter::_generate_uv_index_array(PackedVector2Array &
 }
 
 //same as remove duplicate vertices, just runs for every blend shape
-Array GLTFQuadImporter::_generate_packed_blend_shapes(const Array &tri_blend_shapes, const PackedInt32Array &mesh_index_array,
+Array TopologyDataImporter::_generate_packed_blend_shapes(const Array &tri_blend_shapes, const PackedInt32Array &mesh_index_array,
 		const PackedVector3Array &mesh_vertex_array) {
 	int max_index = 0;
 	HashMap<Vector3, int> original_verts;
@@ -374,7 +332,7 @@ Array GLTFQuadImporter::_generate_packed_blend_shapes(const Array &tri_blend_sha
 	return packed_blend_shape_array;
 }
 
-int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
+int32_t TopologyDataImporter::generate_fake_format(const Array &arrays) const {
 	ERR_FAIL_COND_V(arrays.size() != Mesh::ARRAY_MAX, 0);
 	int32_t format = 0;
 
@@ -409,7 +367,7 @@ int32_t GLTFQuadImporter::generate_fake_format(const Array &arrays) const {
 }
 
 //need to cast back to MeshInstance after. Actually changes scene and switches importer meshinstance to meshinstance
-Object *GLTFQuadImporter::_replace_importer_mesh_instance_with_mesh_instance(Object *importer_mesh_instance_object) {
+Object *TopologyDataImporter::_replace_importer_mesh_instance_with_mesh_instance(Object *importer_mesh_instance_object) {
 	ImporterMeshInstance3D *importer_mesh_instance = Object::cast_to<ImporterMeshInstance3D>(importer_mesh_instance_object);
 	MeshInstance3D *mesh_instance = memnew(MeshInstance3D);
 	Ref<ArrayMesh> array_mesh;

@@ -8,7 +8,7 @@
 
 ### Importing
 
-After installing the addon and enabling it in the settings you can select the custom **Godot Subdiv Importer** in the import settings for any glb or gltf file. 
+After installing the addon and enabling it in the settings you can select the custom **Godot Subdiv Importer** in the import settings for any glb or gltf file. You can also use the **subdivision settings in any scene importer** to be able to make use of all the features of the 3d import pipeline from Godot.
 There you will see three options:
 
 | SubdivMeshInstance3D                                                                                                                                                                                                    | BakedSubdivMesh                                                                                                                                                   | ArrayMesh                                                                                                 |

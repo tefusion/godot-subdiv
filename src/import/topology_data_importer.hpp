@@ -1,5 +1,5 @@
-#ifndef GLTF_QUAD_IMPORTER_H
-#define GLTF_QUAD_IMPORTER_H
+#ifndef TOPOLOGY_DATA_IMPORTER_H
+#define TOPOLOGY_DATA_IMPORTER_H
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/mesh.hpp"
@@ -10,8 +10,8 @@
 
 using namespace godot;
 
-class GLTFQuadImporter : public Object {
-	GDCLASS(GLTFQuadImporter, Object);
+class TopologyDataImporter : public Object {
+	GDCLASS(TopologyDataImporter, Object);
 
 protected:
 	static void
@@ -21,11 +21,12 @@ public:
 	enum ImportMode {
 		SUBDIV_MESHINSTANCE = 0,
 		BAKED_SUBDIV_MESH = 1,
-		ARRAY_MESH = 2
+		ARRAY_MESH = 2,
+		IMPORTER_MESH = 3
 	};
 
 private:
-	struct QuadSurfaceData {
+	struct TopologySurfaceData {
 		godot::PackedVector3Array vertex_array;
 		godot::PackedVector3Array normal_array;
 		godot::PackedVector2Array uv_array;
@@ -45,7 +46,7 @@ private:
 		SurfaceVertexArrays(){};
 	};
 
-	GLTFQuadImporter::QuadSurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format);
+	TopologyDataImporter::TopologySurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format);
 	Array _generate_packed_blend_shapes(const Array &tri_blend_shapes,
 			const PackedInt32Array &mesh_index_array, const PackedVector3Array &mesh_vertex_array);
 	bool _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format);
@@ -56,12 +57,12 @@ private:
 	Object *_replace_importer_mesh_instance_with_mesh_instance(Object *importer_mesh_instance_object);
 
 public:
-	GLTFQuadImporter();
-	~GLTFQuadImporter();
-	void convert_meshinstance_to_quad(Object *p_meshinstance);
-	void convert_importer_meshinstance_to_quad(Object *p_meshinstance, ImportMode import_mode, int32_t subdiv_level);
+	TopologyDataImporter();
+	~TopologyDataImporter();
+	void convert_meshinstance_to_subdiv(Object *p_meshinstance, ImportMode import_mode, int32_t subdiv_level);
+	void convert_importer_meshinstance_to_subdiv(Object *p_meshinstance, ImportMode import_mode, int32_t subdiv_level);
 };
 
-VARIANT_ENUM_CAST(GLTFQuadImporter, ImportMode);
+VARIANT_ENUM_CAST(TopologyDataImporter, ImportMode);
 
 #endif

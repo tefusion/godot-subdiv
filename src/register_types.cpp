@@ -7,7 +7,7 @@
 #include "godot_cpp/core/defs.hpp"
 #include "godot_cpp/godot.hpp"
 
-#include "import/gltf_quad_importer.hpp"
+#include "import/topology_data_importer.hpp"
 #include "nodes/subdiv_mesh_instance_3d.hpp"
 #include "resources/baked_subdiv_mesh.hpp"
 #include "resources/topology_data_mesh.hpp"
@@ -38,7 +38,7 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 
 		ClassDB::register_class<SubdivMeshInstance3D>();
 
-		ClassDB::register_class<GLTFQuadImporter>();
+		ClassDB::register_class<TopologyDataImporter>();
 
 		ClassDB::register_class<TopologyDataMesh>();
 		ClassDB::register_class<BakedSubdivMesh>();
