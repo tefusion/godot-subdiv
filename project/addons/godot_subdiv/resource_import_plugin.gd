@@ -26,7 +26,7 @@ func _get_preset_name(i):
 	return "Default"
 	
 func _get_priority():
-	return 2
+	return 0
 	
 func _get_import_order():
 	return IMPORT_ORDER_SCENE

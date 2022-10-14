@@ -31,7 +31,9 @@ void TopologyDataImporter::_bind_methods() {
 
 TopologyDataImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
 	vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
-	normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
+	if (p_mesh_arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY) {
+		normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
+	}
 	index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
 	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY) {
 		uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
