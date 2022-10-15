@@ -1,9 +1,9 @@
 """
 For building basic release do scons target=template_debug within this folder.
 
-For building tests do scons -Q tests=1
+For building tests with debug symbols do scons target=template_debug dev_build=yes -Q tests=1
 
-For actual debugging, just start godot how'd you do for debugging. The path for the executable would be something like
+For actual debugging, just start debugging the same way as debugging godot directly. The path for the executable would be something like
 path/to/godot --editor --path ${workspaceFolder}/project 
 """
 #!/usr/bin/env python
@@ -74,6 +74,8 @@ addon_path = "project/addons/godot_subdiv"
 # Find the extension name from the gdextension file (e.g. example).
 extension_name = "godot_subdiv"
 
+# if you do dev builds it currently appends .dev. This isn't compatible with the gdextension file so removing here
+build_suffix = env["suffix"].replace(".dev.", ".")
 
 # Create the library target
 if env["platform"] == "macos":
@@ -91,7 +93,7 @@ else:
         "{}/bin/lib{}{}{}".format(
             addon_path,
             extension_name,
-            env["suffix"],
+            build_suffix,
             env["SHLIBSUFFIX"]
         ),
         source=sources,
