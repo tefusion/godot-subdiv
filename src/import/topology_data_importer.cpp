@@ -30,14 +30,18 @@ void TopologyDataImporter::_bind_methods() {
 }
 
 TopologyDataImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_mesh_arrays) {
+	ERR_FAIL_COND(p_mesh_arrays.size() != Mesh::ARRAY_MAX);
+
 	vertex_array = p_mesh_arrays[Mesh::ARRAY_VERTEX];
-	if (p_mesh_arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY) {
+	if (p_mesh_arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY)
 		normal_array = p_mesh_arrays[Mesh::ARRAY_NORMAL];
-	}
-	index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
-	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY) {
+
+	if (p_mesh_arrays[Mesh::ARRAY_INDEX].get_type() == Variant::PACKED_INT32_ARRAY)
+		index_array = p_mesh_arrays[Mesh::ARRAY_INDEX];
+
+	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY)
 		uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
-	}
+
 	if (p_mesh_arrays[Mesh::ARRAY_BONES].get_type() == Variant::PACKED_INT32_ARRAY)
 		bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
 
@@ -51,12 +55,14 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 	ERR_FAIL_COND_MSG(importer_mesh.is_null(), "Mesh is null");
 
 	//handle cases that don't need to generate TopologyDataMesh
-	if (import_mode == ImportMode::IMPORTER_MESH && subdiv_level == 0) {
-		return;
-	}
-	if (import_mode == ImportMode::ARRAY_MESH && subdiv_level == 0) {
-		_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance);
-		return;
+	if (subdiv_level == 0) {
+		if (import_mode == ImportMode::IMPORTER_MESH) {
+			return;
+		}
+		if (import_mode == ImportMode::ARRAY_MESH) {
+			_replace_importer_mesh_instance_with_mesh_instance(importer_mesh_instance);
+			return;
+		}
 	}
 
 	Ref<TopologyDataMesh> topology_data_mesh;
@@ -66,8 +72,22 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 	for (int surface_index = 0; surface_index < importer_mesh->get_surface_count(); surface_index++) {
 		//convert actual mesh data to quad
 		Array p_arrays = importer_mesh->get_surface_arrays(surface_index);
-		SurfaceVertexArrays surface = SurfaceVertexArrays(p_arrays);
 		int32_t format = generate_fake_format(p_arrays); //importermesh surface_get_format just returns flags
+
+		// generate_fake_format returns 0 if size != ARRAY_MAX
+		if (format == 0 || !(format & Mesh::ARRAY_FORMAT_VERTEX)) {
+			continue;
+		} else if (!(format & Mesh::ARRAY_FORMAT_INDEX)) {
+			//generate index array, p_arrays also used by blend_shapes so generating here
+			const PackedVector3Array &vertex_array = p_arrays[Mesh::ARRAY_VERTEX];
+			PackedInt32Array simple_index_array;
+			for (int i = 0; i < vertex_array.size(); i++) {
+				simple_index_array.push_back(i);
+			}
+			p_arrays[Mesh::ARRAY_INDEX] = simple_index_array;
+			format |= Mesh::ARRAY_FORMAT_INDEX;
+		}
+
 		Array surface_arrays;
 		TopologyDataMesh::TopologyType topology_type = _generate_topology_surface_arrays(SurfaceVertexArrays(p_arrays), format, surface_arrays);
 
@@ -336,10 +356,9 @@ Array TopologyDataImporter::_generate_packed_blend_shapes(const Array &tri_blend
 
 int32_t TopologyDataImporter::generate_fake_format(const Array &arrays) const {
 	ERR_FAIL_COND_V(arrays.size() != Mesh::ARRAY_MAX, 0);
-	int32_t format = 0;
+	ERR_FAIL_COND_V(arrays[Mesh::ARRAY_VERTEX].get_type() != Variant::PACKED_VECTOR3_ARRAY, 0);
+	int32_t format = Mesh::ARRAY_FORMAT_VERTEX;
 
-	if (arrays[Mesh::ARRAY_VERTEX].get_type() == Variant::PACKED_VECTOR3_ARRAY)
-		format |= Mesh::ARRAY_FORMAT_VERTEX;
 	if (arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_NORMAL;
 	if (arrays[Mesh::ARRAY_TANGENT].get_type() == Variant::PACKED_FLOAT32_ARRAY)

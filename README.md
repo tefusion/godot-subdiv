@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-Godot%204-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
+![Version](https://img.shields.io/badge/Godot-v4.0%20(beta%203)-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
 # Godot Subdiv
 
 | ![UV Subdivision](UVSubdivision.gif) | ![Skinning subdivision](SkinningSubdivision.gif) |
@@ -55,9 +55,6 @@ In Blender you can go in Edit Mode and go Select->Select All by Trait->Faces by 
 - [Godot3 module for opensubdiv](https://github.com/godot-extended-libraries/godot-fire/tree/feature/3.2/opensubdiv-next) by fire that was referenced for subdivision implementation
 - [Template used](https://github.com/nathanfranke/gdextension), includes the used github workflow and was easy to setup
 
-## Last tested Godot version
-
-Godot 4 Beta 3
 ## License
 
 [MIT](LICENSE)

@@ -262,17 +262,16 @@ void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format,
 	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 
 	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
-	if (p_level == 0) {
-		return;
+	//if p_level not 0 subdivide mesh and store in topology_data again
+	if (p_level != 0) {
+		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
+		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
+		_create_subdivision_vertices(refiner, p_level, p_format);
+		_create_subdivision_faces(refiner, p_level, p_format);
+		//free memory
+
+		delete refiner;
 	}
-
-	Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
-	ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
-	_create_subdivision_vertices(refiner, p_level, p_format);
-	_create_subdivision_faces(refiner, p_level, p_format);
-	//free memory
-
-	delete refiner;
 
 	if (calculate_normals) {
 		topology_data.normal_array = _calculate_smooth_normals(topology_data.vertex_array, topology_data.index_array);
