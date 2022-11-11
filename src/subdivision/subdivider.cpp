@@ -120,7 +120,7 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 	Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
 
 	Far::TopologyRefiner *refiner = Far::TopologyRefinerFactory<Descriptor>::Create(desc, create_options);
-	delete channels;
+	delete[] channels;
 	ERR_FAIL_COND_V(!refiner, nullptr);
 
 	Far::TopologyRefiner::UniformOptions refine_options(p_level);
