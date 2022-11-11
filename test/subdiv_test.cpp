@@ -14,7 +14,7 @@ int SubdivTest::run_tests() {
 }
 
 void SubdivTest::_bind_methods() {
-	ClassDB::bind_method("run_tests", &SubdivTest::run_tests);
+	ClassDB::bind_method(D_METHOD("run_tests"), &SubdivTest::run_tests);
 }
 
 SubdivTest::SubdivTest() {

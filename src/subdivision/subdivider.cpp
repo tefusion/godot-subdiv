@@ -362,8 +362,8 @@ Array Subdivider::_get_direct_triangle_arrays() const {
 }
 
 void Subdivider::_bind_methods() {
-	ClassDB::bind_method("get_subdivided_arrays", &Subdivider::get_subdivided_arrays);
-	ClassDB::bind_method("get_subdivided_topology_arrays", &Subdivider::get_subdivided_topology_arrays);
+	ClassDB::bind_method(D_METHOD("get_subdivided_arrays"), &Subdivider::get_subdivided_arrays);
+	ClassDB::bind_method(D_METHOD("get_subdivided_topology_arrays"), &Subdivider::get_subdivided_topology_arrays);
 }
 
 Subdivider::Subdivider() {
