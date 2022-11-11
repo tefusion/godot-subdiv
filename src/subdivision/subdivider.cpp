@@ -110,7 +110,7 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 		num_channels = 1;
 	}
 
-	Descriptor::FVarChannel channels[num_channels];
+	Descriptor::FVarChannel *channels = new Descriptor::FVarChannel[num_channels];
 	Descriptor desc = _create_topology_descriptor(subdiv_face_vertex_count, channels, p_format);
 
 	Sdc::SchemeType type = _get_refiner_type();
@@ -120,6 +120,7 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 	Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
 
 	Far::TopologyRefiner *refiner = Far::TopologyRefinerFactory<Descriptor>::Create(desc, create_options);
+	delete channels;
 	ERR_FAIL_COND_V(!refiner, nullptr);
 
 	Far::TopologyRefiner::UniformOptions refine_options(p_level);
