@@ -1,6 +1,5 @@
 #include "subdivider.hpp"
 
-#include "godot_cpp/classes/mesh_data_tool.hpp"
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/templates/hash_set.hpp"
 #include "godot_cpp/variant/builtin_types.hpp"
