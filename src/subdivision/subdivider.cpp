@@ -133,22 +133,125 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 
 	return refiner;
 }
-void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format) {
+
+const Far::StencilTable *Subdivider::_create_stenctil_table(Far::TopologyRefiner *refiner, Far::StencilTableFactory::Mode interpolation_mode) {
+	Far::StencilTableFactory::Options options;
+	options.interpolationMode = interpolation_mode;
+	options.generateIntermediateLevels = true;
+	options.generateOffsets = true;
+
+	Far::StencilTable const *stencil_table =
+			Far::StencilTableFactory::Create(*refiner, options);
+
+	//just quick check if this table creation failed
+	assert(stencil_table->GetNumStencils() + stencil_table->GetNumControlVertices() == refiner->GetNumVerticesTotal());
+	return stencil_table;
+}
+
+void Subdivider::_create_subdivision_vertices() {
+	Vertex *src = (Vertex *)topology_data.vertex_array.ptr();
+	int nstencils = vertex_table->GetNumStencils();
+	Vertex *dst = src + vertex_table->GetNumControlVertices();
+	vertex_table->UpdateValues(src, &dst[0]);
+}
+
+Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+	subdivide(p_arrays, p_level, p_format, calculate_normals);
+	return _get_triangle_arrays();
+}
+
+Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+	ERR_FAIL_COND_V(p_level <= 0, Array());
+	subdivide(p_arrays, p_level, p_format, calculate_normals);
+	Array arr;
+	arr.resize(TopologyDataMesh::ARRAY_MAX);
+	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
+	arr[TopologyDataMesh::ARRAY_NORMAL] = topology_data.normal_array;
+	arr[TopologyDataMesh::ARRAY_TEX_UV] = topology_data.uv_array;
+	arr[TopologyDataMesh::ARRAY_UV_INDEX] = topology_data.uv_index_array;
+	arr[TopologyDataMesh::ARRAY_INDEX] = topology_data.index_array;
+	arr[TopologyDataMesh::ARRAY_BONES] = topology_data.bones_array;
+	arr[TopologyDataMesh::ARRAY_WEIGHTS] = topology_data.weights_array;
+	return arr;
+}
+
+void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+	ERR_FAIL_COND(p_level < 0);
 	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 
-	int original_vertex_count = topology_data.vertex_array.size();
+	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
+	//if p_level not 0 subdivide mesh and store in topology_data again
+	if (p_level != 0) {
+		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
+		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
+		_initialize_subdivided_mesh_array(refiner, p_format, p_level);
+		_set_index_arrays(refiner, p_level, p_format);
+		vertex_table = _create_stenctil_table(refiner, Far::StencilTableFactory::INTERPOLATE_VERTEX);
+		_create_subdivision_vertices();
+
+		//free memory
+		delete refiner;
+		delete vertex_table;
+	}
+
+	if (calculate_normals) {
+		topology_data.normal_array = _calculate_smooth_normals(topology_data.vertex_array, topology_data.index_array);
+	}
+}
+
+//TODO: virtual calls are not implemented yet in godot cpp (I think, it wasnt 2 weeks ago and didn't see any commit)
+OpenSubdiv::Sdc::SchemeType Subdivider::_get_refiner_type() const {
+	return Sdc::SchemeType::SCHEME_CATMARK;
+}
+
+void Subdivider::_set_index_arrays(OpenSubdiv::Far::TopologyRefiner *refiner,
+		const int32_t p_level, int32_t p_format) {
+	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
+
+	PackedInt32Array index_array;
+	PackedInt32Array uv_index_array;
+
+	Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
+	int face_count_out = last_level.GetNumFaces();
+	int uv_index_offset = use_uv ? topology_data.uv_count - last_level.GetNumFVarValues(Channels::UV) : -1;
+
+	int vertex_index_offset = topology_data.vertex_count - last_level.GetNumVertices();
+	for (int face_index = 0; face_index < face_count_out; ++face_index) {
+		int parent_face_index = last_level.GetFaceParentFace(face_index);
+		for (int level_index = p_level - 1; level_index > 0; --level_index) {
+			Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
+			parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
+		}
+
+		Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
+
+		ERR_FAIL_COND(face_vertices.size() != topology_data.vertex_count_per_face);
+		for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
+			index_array.push_back(vertex_index_offset + face_vertices[face_vert_index]);
+		}
+
+		if (use_uv) {
+			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::UV);
+			for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
+				uv_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
+			}
+		}
+	}
+	topology_data.index_array = index_array;
+	if (use_uv) {
+		topology_data.uv_index_array = uv_index_array;
+	}
+}
+
+void Subdivider::_initialize_subdivided_mesh_array(OpenSubdiv::Far::TopologyRefiner *refiner, const int32_t p_format, int p_level) {
+	const int original_vertex_count = topology_data.vertex_array.size();
 	topology_data.vertex_array.resize(topology_data.vertex_count);
 
-	// Interpolate vertex primvar data
+	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 	Far::PrimvarRefiner primvar_refiner(*refiner);
-	//vertices
-	Vertex *src = (Vertex *)topology_data.vertex_array.ptr();
-	for (int level = 0; level < p_level; ++level) {
-		Vertex *dst = src + refiner->GetLevel(level).GetNumVertices();
-		primvar_refiner.Interpolate(level + 1, src, dst);
-		src = dst;
-	}
 
 	if (use_uv) {
 		topology_data.uv_array.resize(topology_data.uv_count);
@@ -163,7 +266,6 @@ void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, con
 	if (use_bones) {
 		//What happens here is just create weights array that contain ALL weights
 		//indexed to bones per vertex to allow interpolating them and afterwards pick the 4 highest weights
-
 		int highest_bone_index = 0;
 
 		for (int i = 0; i < topology_data.bones_array.size(); i++) {
@@ -233,93 +335,6 @@ void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, con
 				}
 			}
 		}
-	}
-}
-
-Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
-	return _get_triangle_arrays();
-}
-
-Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	ERR_FAIL_COND_V(p_level <= 0, Array());
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
-	Array arr;
-	arr.resize(TopologyDataMesh::ARRAY_MAX);
-	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
-	arr[TopologyDataMesh::ARRAY_NORMAL] = topology_data.normal_array;
-	arr[TopologyDataMesh::ARRAY_TEX_UV] = topology_data.uv_array;
-	arr[TopologyDataMesh::ARRAY_UV_INDEX] = topology_data.uv_index_array;
-	arr[TopologyDataMesh::ARRAY_INDEX] = topology_data.index_array;
-	arr[TopologyDataMesh::ARRAY_BONES] = topology_data.bones_array;
-	arr[TopologyDataMesh::ARRAY_WEIGHTS] = topology_data.weights_array;
-	return arr;
-}
-
-void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	ERR_FAIL_COND(p_level < 0);
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
-	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
-
-	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
-	//if p_level not 0 subdivide mesh and store in topology_data again
-	if (p_level != 0) {
-		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
-		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
-		_create_subdivision_vertices(refiner, p_level, p_format);
-		_create_subdivision_faces(refiner, p_level, p_format);
-		//free memory
-
-		delete refiner;
-	}
-
-	if (calculate_normals) {
-		topology_data.normal_array = _calculate_smooth_normals(topology_data.vertex_array, topology_data.index_array);
-	}
-}
-
-//TODO: virtual calls are not implemented yet in godot cpp (I think, it wasnt 2 weeks ago and didn't see any commit)
-OpenSubdiv::Sdc::SchemeType Subdivider::_get_refiner_type() const {
-	return Sdc::SchemeType::SCHEME_CATMARK;
-}
-
-void Subdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
-		const int32_t p_level, int32_t p_format) {
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
-	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
-
-	PackedInt32Array index_array;
-	PackedInt32Array uv_index_array;
-
-	Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
-	int face_count_out = last_level.GetNumFaces();
-	int uv_index_offset = use_uv ? topology_data.uv_count - last_level.GetNumFVarValues(Channels::UV) : -1;
-
-	int vertex_index_offset = topology_data.vertex_count - last_level.GetNumVertices();
-	for (int face_index = 0; face_index < face_count_out; ++face_index) {
-		int parent_face_index = last_level.GetFaceParentFace(face_index);
-		for (int level_index = p_level - 1; level_index > 0; --level_index) {
-			Far::TopologyLevel const &prev_level = refiner->GetLevel(level_index);
-			parent_face_index = prev_level.GetFaceParentFace(parent_face_index);
-		}
-
-		Far::ConstIndexArray face_vertices = last_level.GetFaceVertices(face_index);
-
-		ERR_FAIL_COND(face_vertices.size() != topology_data.vertex_count_per_face);
-		for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
-			index_array.push_back(vertex_index_offset + face_vertices[face_vert_index]);
-		}
-
-		if (use_uv) {
-			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::UV);
-			for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
-				uv_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
-			}
-		}
-	}
-	topology_data.index_array = index_array;
-	if (use_uv) {
-		topology_data.uv_index_array = uv_index_array;
 	}
 }
 

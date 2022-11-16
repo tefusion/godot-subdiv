@@ -25,8 +25,23 @@ run_tests = env.get('tests')
 
 # compile local
 thirdparty_dir = "thirdparty/opensubdiv/"
+
+# TODO: sort compiler out, this contains all files from far which is probably not needed
 thirdparty_sources = [
+    "far/bilinearPatchBuilder.cpp",
+    "far/catmarkPatchBuilder.cpp",
     "far/error.cpp",
+    "far/loopPatchBuilder.cpp",
+    "far/patchBasis.cpp",
+    "far/patchBuilder.cpp",
+    "far/patchDescriptor.cpp",
+    "far/patchMap.cpp",
+    "far/patchTable.cpp",
+    "far/patchTableFactory.cpp",
+    "far/ptexIndices.cpp",
+    "far/stencilBuilder.cpp",
+    "far/stencilTable.cpp",
+    "far/stencilTableFactory.cpp",
     "far/topologyDescriptor.cpp",
     "far/topologyRefiner.cpp",
     "far/topologyRefinerFactory.cpp",

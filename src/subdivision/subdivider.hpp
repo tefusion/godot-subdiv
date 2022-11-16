@@ -7,6 +7,8 @@
 #include "godot_cpp/templates/vector.hpp"
 
 #include "far/primvarRefiner.h"
+#include "far/stencilTable.h"
+#include "far/stencilTableFactory.h"
 #include "far/topologyDescriptor.h"
 
 using namespace godot;
@@ -38,6 +40,8 @@ protected:
 		TopologyData() {}
 	};
 
+	const OpenSubdiv::Far::StencilTable *vertex_table;
+
 public:
 	enum Channels {
 		UV = 0
@@ -48,10 +52,16 @@ protected:
 	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //sets topology_data
 	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(Vector<int> &subdiv_face_vertex_count,
 			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels, const int32_t p_format);
+
+	//call at constructor, initializes needed tables/data for future subdivision
 	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels);
-	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format);
-	void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
-			const int32_t p_level, const int32_t p_format);
+	const OpenSubdiv::Far::StencilTable *_create_stenctil_table(OpenSubdiv::Far::TopologyRefiner *refiner, OpenSubdiv::Far::StencilTableFactory::Mode interpolation_mode);
+	void _set_index_arrays(OpenSubdiv::Far::TopologyRefiner *refiner,
+			const int32_t p_level, int32_t p_format);
+	void _initialize_subdivided_mesh_array(OpenSubdiv::Far::TopologyRefiner *refiner, const int32_t p_format, int p_level); //handles UV's, bones, etc.
+
+	//updates/sets data in topology_data
+	void _create_subdivision_vertices();
 	PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
 
 	virtual OpenSubdiv::Sdc::SchemeType _get_refiner_type() const;
