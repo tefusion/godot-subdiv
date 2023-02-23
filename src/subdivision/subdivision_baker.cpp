@@ -7,12 +7,14 @@ Array SubdivisionBaker::get_baked_arrays(const Array &topology_arrays, int p_lev
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
 			Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
-			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			subdivider->initialize(topology_arrays, p_level, p_format);
+			return subdivider->get_subdivided_arrays(topology_arrays[Mesh::ARRAY_VERTEX], true);
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
 			Ref<TriangleSubdivider> subdivider = memnew(TriangleSubdivider);
-			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			subdivider->initialize(topology_arrays, p_level, p_format);
+			return subdivider->get_subdivided_arrays(topology_arrays[Mesh::ARRAY_VERTEX], true);
 		}
 
 		default:

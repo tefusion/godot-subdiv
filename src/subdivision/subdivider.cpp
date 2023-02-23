@@ -155,14 +155,13 @@ void Subdivider::_create_subdivision_vertices() {
 	vertex_table->UpdateValues(src, &dst[0]);
 }
 
-Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
+Array Subdivider::get_subdivided_arrays(const PackedVector3Array &vertex_array, bool calculate_normals) {
+	subdivide(vertex_array, calculate_normals);
 	return _get_triangle_arrays();
 }
 
-Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	ERR_FAIL_COND_V(p_level <= 0, Array());
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
+Array Subdivider::get_subdivided_topology_arrays(const PackedVector3Array &vertex_array, bool calculate_normals) {
+	subdivide(vertex_array, calculate_normals);
 	Array arr;
 	arr.resize(TopologyDataMesh::ARRAY_MAX);
 	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
@@ -175,26 +174,10 @@ Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_le
 	return arr;
 }
 
-void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	ERR_FAIL_COND(p_level < 0);
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
-	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
-
-	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
-	//if p_level not 0 subdivide mesh and store in topology_data again
-	if (p_level != 0) {
-		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
-		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
-		_initialize_subdivided_mesh_array(refiner, p_format, p_level);
-		_set_index_arrays(refiner, p_level, p_format);
-		vertex_table = _create_stenctil_table(refiner, Far::StencilTableFactory::INTERPOLATE_VERTEX);
-		_create_subdivision_vertices();
-
-		//free memory
-		delete refiner;
-		delete vertex_table;
-	}
-
+void Subdivider::subdivide(const PackedVector3Array &vertex_array, bool calculate_normals) {
+	topology_data.vertex_array = vertex_array;
+	topology_data.vertex_array.resize(topology_data.vertex_count);
+	_create_subdivision_vertices();
 	if (calculate_normals) {
 		topology_data.normal_array = _calculate_smooth_normals(topology_data.vertex_array, topology_data.index_array);
 	}
@@ -360,6 +343,22 @@ PackedVector3Array Subdivider::_calculate_smooth_normals(const PackedVector3Arra
 	return normals;
 }
 
+void Subdivider::initialize(const Array &p_arrays, int p_level, int32_t p_format) {
+	ERR_FAIL_COND(p_level < 0);
+	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
+	//if p_level not 0 subdivide mesh and store in topology_data again
+	if (p_level != 0) {
+		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
+		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
+		_initialize_subdivided_mesh_array(refiner, p_format, p_level);
+		_set_index_arrays(refiner, p_level, p_format);
+		vertex_table = _create_stenctil_table(refiner, Far::StencilTableFactory::INTERPOLATE_VERTEX);
+		//free memory
+		delete refiner;
+	}
+	subdiv_level = p_level;
+}
+
 Array Subdivider::_get_triangle_arrays() const {
 	return Array();
 }
@@ -378,9 +377,14 @@ Array Subdivider::_get_direct_triangle_arrays() const {
 void Subdivider::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_subdivided_arrays"), &Subdivider::get_subdivided_arrays);
 	ClassDB::bind_method(D_METHOD("get_subdivided_topology_arrays"), &Subdivider::get_subdivided_topology_arrays);
+	ClassDB::bind_method(D_METHOD("initialize"), &Subdivider::initialize);
 }
 
 Subdivider::Subdivider() {
 }
+Subdivider::Subdivider(const Array &p_arrays, int p_level, int32_t p_format) {
+	initialize(p_arrays, p_level, p_format);
+}
 Subdivider::~Subdivider() {
+	delete vertex_table;
 }

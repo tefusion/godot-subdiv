@@ -12,6 +12,7 @@
 #include "godot_cpp/templates/vector.hpp"
 
 #include "resources/topology_data_mesh.hpp"
+#include "subdivision/subdivider.hpp"
 
 using namespace godot;
 
@@ -25,10 +26,13 @@ class SubdivisionMesh : public RefCounted {
 
 protected:
 	static void _bind_methods();
-	Array _get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type);
+	Array _get_subdivided_arrays(const int surface_index, const PackedVector3Array &vertex_arrays, bool calculate_normals, TopologyDataMesh::TopologyType topology_type);
 
 	Vector<int64_t> subdiv_vertex_count; //variables used for compatibility with mesh
 	Vector<int64_t> subdiv_index_count;
+
+	Vector<Ref<Subdivider>> subdividers;
+	void set_subdivider(const int surface_index, const Array &p_arrays, int p_level, int32_t p_format, TopologyDataMesh::TopologyType topology_type);
 
 public:
 	SubdivisionMesh();

@@ -22,7 +22,7 @@ Array TriangleSubdivider::_get_triangle_arrays() const {
 	PackedFloat32Array tangent_array;
 
 	PackedInt32Array bones_array;
-	PackedInt32Array weights_array;
+	PackedFloat32Array weights_array;
 
 	const bool use_uv = topology_data.uv_array.size();
 	const bool use_bones = topology_data.bones_array.size();

@@ -15,21 +15,40 @@
 #include "quad_subdivider.hpp"
 #include "triangle_subdivider.hpp"
 
-Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type) {
+Array SubdivisionMesh::_get_subdivided_arrays(const int surface_index, const PackedVector3Array &vertex_arrays, bool calculate_normals, TopologyDataMesh::TopologyType topology_type) {
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
-			Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
-			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			Ref<QuadSubdivider> subdivider = subdividers[surface_index];
+			return subdivider->get_subdivided_arrays(vertex_arrays, calculate_normals);
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
 			Ref<TriangleSubdivider> subdivider = memnew(TriangleSubdivider);
-			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			return subdivider->get_subdivided_arrays(vertex_arrays, calculate_normals);
 		}
 
 		default:
 			return Array();
 	}
+}
+
+void SubdivisionMesh::set_subdivider(const int surface_index, const Array &p_arrays, int p_level, int32_t p_format, TopologyDataMesh::TopologyType topology_type) {
+	ERR_FAIL_INDEX(surface_index, subdividers.size());
+	Subdivider *subdivider;
+	switch (topology_type) {
+		case TopologyDataMesh::QUAD: {
+			subdivider = memnew(QuadSubdivider);
+		}
+
+		case TopologyDataMesh::TRIANGLE: {
+			subdivider = memnew(TriangleSubdivider);
+		}
+
+		default:
+			ERR_FAIL_MSG(ERR_DOES_NOT_EXIST);
+	}
+	subdivider->initialize(p_arrays, p_level, p_format);
+	subdividers[surface_index] = subdivider;
 }
 
 void SubdivisionMesh::update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t p_level) {
@@ -73,15 +92,10 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	int32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
 	surface_format &= Mesh::ARRAY_FORMAT_INDEX;
 
-	Array v_arrays;
-	v_arrays.resize(TopologyDataMesh::ARRAY_MAX);
-	v_arrays[TopologyDataMesh::ARRAY_VERTEX] = new_vertex_array;
-	v_arrays[TopologyDataMesh::ARRAY_INDEX] = index_array;
-
 	//TODO: also update normals
 	// for putting it into an int look in immediate mesh (just shift and clamp each value to fit into 30 bits total)
 	// currently normal generation too slow to actually update
-	Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, false, topology_type);
+	Array subdiv_triangle_arrays = _get_subdivided_arrays(p_surface, new_vertex_array, false, topology_type);
 
 	const PackedInt32Array &index_array_out = subdiv_triangle_arrays[Mesh::ARRAY_INDEX];
 	const PackedVector3Array &vertex_array_out = subdiv_triangle_arrays[Mesh::ARRAY_VERTEX]; //now that subdivider class used this is the already triangulated array
