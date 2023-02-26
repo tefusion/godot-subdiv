@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/Godot-v4.0%20(beta%204)-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
+![Version](https://img.shields.io/badge/Godot-v4.0%20RC%205-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
 # Godot Subdiv
 
 | ![UV Subdivision](UVSubdivision.gif) | ![Skinning subdivision](SkinningSubdivision.gif) |

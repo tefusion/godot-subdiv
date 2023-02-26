@@ -63,6 +63,6 @@ public:
 	void convert_importer_meshinstance_to_subdiv(Object *p_meshinstance, ImportMode import_mode, int32_t subdiv_level);
 };
 
-VARIANT_ENUM_CAST(TopologyDataImporter, ImportMode);
+VARIANT_ENUM_CAST(TopologyDataImporter::ImportMode);
 
 #endif

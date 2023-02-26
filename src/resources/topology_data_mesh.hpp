@@ -110,5 +110,5 @@ public:
 	~TopologyDataMesh();
 };
 
-VARIANT_ENUM_CAST(TopologyDataMesh, TopologyType);
+VARIANT_ENUM_CAST(TopologyDataMesh::TopologyType);
 #endif
