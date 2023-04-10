@@ -25,7 +25,8 @@ int BakedSubdivMesh::get_subdiv_level() const {
 
 void BakedSubdivMesh::_update_subdiv() {
 	if (data_mesh.is_valid()) {
-		Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
+		Ref<SubdivisionBaker> baker;
+		baker.instantiate();
 		_clear();
 
 		//add blendshapes

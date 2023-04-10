@@ -9,7 +9,8 @@ OpenSubdiv::Sdc::SchemeType QuadSubdivider::_get_refiner_type() const {
 }
 
 Array QuadSubdivider::_get_triangle_arrays() const {
-	Ref<SurfaceTool> st = memnew(SurfaceTool);
+	Ref<SurfaceTool> st;
+	st.instantiate();
 
 	bool use_uv = topology_data.uv_array.size();
 	bool use_bones = topology_data.bones_array.size();

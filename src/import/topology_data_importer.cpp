@@ -148,7 +148,8 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 			Ref<ImporterMesh> subdiv_importer_mesh;
 			subdiv_importer_mesh.instantiate();
 
-			Ref<SubdivisionBaker> baker = memnew(SubdivisionBaker);
+			Ref<SubdivisionBaker> baker;
+			baker.instantiate();
 			subdiv_importer_mesh = baker->get_importer_mesh(subdiv_importer_mesh, topology_data_mesh, subdiv_level, true);
 			importer_mesh_instance->set_mesh(subdiv_importer_mesh);
 			if (import_mode == ImportMode::ARRAY_MESH) {
