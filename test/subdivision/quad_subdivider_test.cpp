@@ -11,7 +11,8 @@ TEST_CASE("simple cube test") {
 	const Array arr = a->surface_get_arrays(0);
 	int32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
 	surface_format &= Mesh::ARRAY_FORMAT_INDEX;
-	Ref<QuadSubdivider> quad_subdivider = memnew(QuadSubdivider);
+	Ref<QuadSubdivider> quad_subdivider;
+	quad_subdivider.instantiate();
 	Array result = quad_subdivider->get_subdivided_arrays(arr, 1, a->surface_get_format(0), true);
 	const PackedVector3Array &vertex_array = result[Mesh::ARRAY_VERTEX];
 	const PackedVector3Array &normal_array = result[Mesh::ARRAY_NORMAL];
@@ -29,7 +30,8 @@ TEST_CASE("compare with subdivided") {
 	const Array arr = a->surface_get_arrays(0);
 	int32_t surface_format = Mesh::ARRAY_FORMAT_VERTEX;
 	surface_format &= Mesh::ARRAY_FORMAT_INDEX;
-	Ref<QuadSubdivider> quad_subdivider = memnew(QuadSubdivider);
+	Ref<QuadSubdivider> quad_subdivider;
+	quad_subdivider.instantiate();
 	Array result = quad_subdivider->get_subdivided_topology_arrays(arr, 1, a->surface_get_format(0), true);
 	const PackedVector3Array &vertex_array = result[TopologyDataMesh::ARRAY_VERTEX];
 	const PackedVector3Array &normal_array = result[TopologyDataMesh::ARRAY_NORMAL];
@@ -62,7 +64,8 @@ TEST_CASE("subdiv level zero") {
 
 	int32_t p_format = Mesh::ARRAY_FORMAT_VERTEX;
 	p_format &= Mesh::ARRAY_FORMAT_INDEX;
-	Ref<QuadSubdivider> subdivider = memnew(QuadSubdivider);
+	Ref<QuadSubdivider> subdivider;
+	subdivider.instantiate();
 	Array result = subdivider->get_subdivided_arrays(arr, 0, p_format, false);
 	CHECK(result.size() == Mesh::ARRAY_MAX); //TODO: make a test suite that calls all these for each input
 	const PackedVector3Array &result_vertex_array = result[Mesh::ARRAY_VERTEX];

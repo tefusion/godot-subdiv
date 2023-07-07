@@ -22,7 +22,8 @@ TEST_CASE("subdivide once") {
 
 	int32_t p_format = Mesh::ARRAY_FORMAT_VERTEX;
 	p_format &= Mesh::ARRAY_FORMAT_INDEX;
-	Ref<TriangleSubdivider> subdivider = memnew(TriangleSubdivider);
+	Ref<TriangleSubdivider> subdivider;
+	subdivider.instantiate();
 	Array result = subdivider->get_subdivided_arrays(arr, 1, p_format, false);
 	CHECK(result.size() == Mesh::ARRAY_MAX);
 	const PackedVector3Array &result_vertex_array = result[Mesh::ARRAY_VERTEX];

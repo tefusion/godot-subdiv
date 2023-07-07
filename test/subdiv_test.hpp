@@ -17,8 +17,6 @@ protected:
 
 public:
 	int run_tests();
-	SubdivTest();
-	~SubdivTest();
 };
 
 #endif
