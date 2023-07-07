@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/Godot-v4.0.2-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
+![Version](https://img.shields.io/badge/Godot-v4.1-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
 # Godot Subdiv
 
 | ![UV Subdivision](UVSubdivision.gif) | ![Skinning subdivision](SkinningSubdivision.gif) |
@@ -8,8 +8,8 @@
 
 ### Importing
 
-After installing the addon and enabling it in the settings you can select the custom **Godot Subdiv Importer** in the import settings for any glb or gltf file. You can also use the **subdivision settings in any scene importer** to be able to make use of all the features of the 3d import pipeline from Godot.
-There you will see three options:
+After installing the addon and enabling it you will see a **subdivision section for any scene importer**.
+Import has these three options:
 
 | SubdivMeshInstance3D                                                                                                                                                                                                    | BakedSubdivMesh                                                                                                                                                   | ArrayMesh                                                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
