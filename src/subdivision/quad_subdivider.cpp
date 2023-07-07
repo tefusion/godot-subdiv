@@ -75,9 +75,3 @@ Array QuadSubdivider::_get_direct_triangle_arrays() const {
 
 void QuadSubdivider::_bind_methods() {
 }
-
-QuadSubdivider::QuadSubdivider() {
-}
-
-QuadSubdivider::~QuadSubdivider() {
-}

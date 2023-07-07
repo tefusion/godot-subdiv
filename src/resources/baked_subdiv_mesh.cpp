@@ -85,12 +85,6 @@ bool BakedSubdivMesh::_get(const StringName &p_name, Variant &r_ret) {
 	return false;
 }
 
-BakedSubdivMesh::BakedSubdivMesh() {
-}
-
-BakedSubdivMesh::~BakedSubdivMesh() {
-}
-
 void BakedSubdivMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("sedata_mesh", "data_mesh"), &BakedSubdivMesh::set_data_mesh);
 	ClassDB::bind_method(D_METHOD("gedata_mesh"), &BakedSubdivMesh::get_data_mesh);

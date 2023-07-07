@@ -324,7 +324,7 @@ void Subdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *ref
 	}
 }
 
-PackedVector3Array Subdivider::_calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) {
+PackedVector3Array Subdivider::_calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) const {
 	PackedVector3Array normals;
 	normals.resize(quad_vertex_array.size());
 	for (int f = 0; f < quad_index_array.size(); f += topology_data.vertex_count_per_face) {
@@ -364,9 +364,4 @@ Array Subdivider::_get_direct_triangle_arrays() const {
 void Subdivider::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_subdivided_arrays"), &Subdivider::get_subdivided_arrays);
 	ClassDB::bind_method(D_METHOD("get_subdivided_topology_arrays"), &Subdivider::get_subdivided_topology_arrays);
-}
-
-Subdivider::Subdivider() {
-}
-Subdivider::~Subdivider() {
 }

@@ -1,5 +1,4 @@
-#ifndef SUBDIVISION_SERVER_H
-#define SUBDIVISION_SERVER_H
+#pragma once
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -28,5 +27,3 @@ public:
 	SubdivisionServer();
 	~SubdivisionServer();
 };
-
-#endif

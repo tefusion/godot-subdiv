@@ -1,5 +1,4 @@
-#ifndef TOPOLOGY_DATA_MESH_H
-#define TOPOLOGY_DATA_MESH_H
+#pragma once
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -40,25 +39,6 @@ public:
 		QUAD = 1
 	};
 
-protected:
-	struct Surface {
-		Array arrays;
-		Array blend_shape_data; //Array[Array][PackedVector3Array]
-		Ref<Material> material;
-		String name;
-		int32_t flags = 0;
-		AABB aabb;
-		int32_t format;
-		TopologyType topology_type;
-	};
-	Vector<Surface> surfaces;
-	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
-
-	void _set_data(const Dictionary &p_data);
-	Dictionary _get_data() const;
-	static void _bind_methods();
-
-public:
 	struct TopologySurfaceData {
 		godot::PackedVector3Array vertex_array;
 		godot::PackedVector3Array normal_array;
@@ -81,6 +61,25 @@ public:
 		}
 	};
 
+protected:
+	struct Surface {
+		Array arrays;
+		Array blend_shape_data; //Array[Array][PackedVector3Array]
+		Ref<Material> material;
+		String name;
+		int32_t flags = 0;
+		AABB aabb;
+		int32_t format;
+		TopologyType topology_type;
+	};
+	Vector<Surface> surfaces;
+	Array blend_shapes; //is Vector<StringName>, but that caused casting issues
+
+	void _set_data(const Dictionary &p_data);
+	Dictionary _get_data() const;
+	static void _bind_methods();
+
+public:
 	Array surface_get_arrays(int p_surface) const;
 
 	void add_surface(const Array &p_arrays, const Array &p_blend_shapes,
@@ -105,10 +104,6 @@ public:
 	//only use after adding blend shape to surface
 	void add_blend_shape_name(const StringName &p_name);
 	void clear();
-
-	TopologyDataMesh();
-	~TopologyDataMesh();
 };
 
 VARIANT_ENUM_CAST(TopologyDataMesh::TopologyType);
-#endif

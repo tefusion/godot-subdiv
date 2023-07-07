@@ -61,9 +61,3 @@ Array TriangleSubdivider::_get_direct_triangle_arrays() const {
 
 void TriangleSubdivider::_bind_methods() {
 }
-
-TriangleSubdivider::TriangleSubdivider() {
-}
-
-TriangleSubdivider::~TriangleSubdivider() {
-}

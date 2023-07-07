@@ -181,12 +181,6 @@ int TopologyDataMesh::surface_get_length(int p_surface) {
 	return vertex_array.size();
 }
 
-TopologyDataMesh::TopologyDataMesh() {
-}
-
-TopologyDataMesh::~TopologyDataMesh() {
-}
-
 void TopologyDataMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_surface"), &TopologyDataMesh::add_surface);
 

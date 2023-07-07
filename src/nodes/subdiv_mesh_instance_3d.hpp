@@ -20,8 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#ifndef SUBDIV_MESH_INSTANCE_3D_H
-#define SUBDIV_MESH_INSTANCE_3D_H
+#pragma once
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -60,8 +59,9 @@ protected:
 	void _init_cached_data_array();
 	void _mesh_changed(); //if actual mesh property changes
 	void _subdiv_mesh_changed(); //if subdiv level changes, just needs to reapply override materials, cached_data stays
+	void _update_skinning();
+	void _update_subdiv_mesh_vertices(int p_surface, const PackedVector3Array &vertex_array);
 
-protected:
 	static void _bind_methods();
 	void _notification(int p_what);
 	void _get_property_list(List<PropertyInfo> *p_list) const;
@@ -93,11 +93,4 @@ public:
 
 	SubdivMeshInstance3D();
 	~SubdivMeshInstance3D();
-
-protected:
-	void _update_skinning();
-	void _update_subdiv_mesh_vertices(int p_surface, const PackedVector3Array &vertex_array);
 };
-;
-
-#endif

@@ -15,12 +15,6 @@
 #include "resources/baked_subdiv_mesh.hpp"
 #include "subdivision/subdivision_baker.hpp"
 
-TopologyDataImporter::TopologyDataImporter() {
-}
-
-TopologyDataImporter::~TopologyDataImporter() {
-}
-
 void TopologyDataImporter::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("convert_importer_meshinstance_to_subdiv"), &TopologyDataImporter::convert_importer_meshinstance_to_subdiv);
 	BIND_ENUM_CONSTANT(SUBDIV_MESHINSTANCE);

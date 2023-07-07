@@ -1,5 +1,4 @@
-#ifndef SUBDIVIDER_H
-#define SUBDIVIDER_H
+#pragma once
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/ref_counted.hpp"
@@ -15,9 +14,10 @@ class Subdivider : public RefCounted {
 	GDCLASS(Subdivider, RefCounted);
 
 protected:
-	static void _bind_methods();
-
-protected:
+	/**
+	 * @brief Just struct for storing arrays for easier use than array
+	 *
+	 */
 	struct TopologyData {
 		PackedVector3Array vertex_array;
 		PackedVector3Array normal_array;
@@ -38,21 +38,30 @@ protected:
 		TopologyData() {}
 	};
 
-public:
-	enum Channels {
-		UV = 0
-	};
+	static void _bind_methods();
 
-protected:
-	TopologyData topology_data; //used for both passing to opensubdiv and storing result topology again (easier to handle level 0 like that)
-	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //sets topology_data
+	/**
+	 * @brief Used for both passing to opensubdiv and storing result topology again (easier to handle level 0 like that)
+	 *
+	 */
+	TopologyData topology_data;
+
+	/**
+	 * @brief Sets internal topology data
+	 *
+	 * @param p_arrays
+	 * @param p_level
+	 * @param p_format
+	 * @param calculate_normals
+	 */
+	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals);
 	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(Vector<int> &subdiv_face_vertex_count,
 			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels, const int32_t p_format);
 	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels);
 	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format);
 	void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
 			const int32_t p_level, const int32_t p_format);
-	PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array);
+	PackedVector3Array _calculate_smooth_normals(const PackedVector3Array &quad_vertex_array, const PackedInt32Array &quad_index_array) const;
 
 	virtual OpenSubdiv::Sdc::SchemeType _get_refiner_type() const;
 	virtual Vector<int> _get_face_vertex_count() const;
@@ -62,10 +71,10 @@ protected:
 	virtual Array _get_direct_triangle_arrays() const;
 
 public:
+	enum Channels {
+		UV = 0
+	};
+
 	Array get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //Returns triangle faces for rendering
 	Array get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //returns actual face data
-	Subdivider();
-	~Subdivider();
 };
-
-#endif

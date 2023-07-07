@@ -107,9 +107,6 @@ Ref<ArrayMesh> SubdivisionBaker::get_array_mesh(const Ref<ArrayMesh> &p_base, co
 	return mesh;
 }
 
-SubdivisionBaker::SubdivisionBaker() {}
-SubdivisionBaker::~SubdivisionBaker() {}
-
 void SubdivisionBaker::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_baked_arrays", "topology_arrays", "subdivision_level", "format", "topology_type"), &SubdivisionBaker::get_baked_arrays);
 	ClassDB::bind_method(D_METHOD("get_importer_mesh", "base", "topology_data_mesh", "subdivision_level"), &SubdivisionBaker::get_importer_mesh);

@@ -1,5 +1,4 @@
-#ifndef BAKED_SUBDIV_MESH_H
-#define BAKED_SUBDIV_MESH_H
+#pragma once
 
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -34,8 +33,4 @@ public:
 	Ref<TopologyDataMesh> get_data_mesh() const;
 	void set_subdiv_level(int p_level);
 	int get_subdiv_level() const;
-	BakedSubdivMesh();
-	~BakedSubdivMesh();
 };
-
-#endif

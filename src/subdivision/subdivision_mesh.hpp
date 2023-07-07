@@ -1,6 +1,4 @@
-#ifndef SUBDIVISION_MESH_H
-#define SUBDIVISION_MESH_H
-
+#pragma once
 #include "godot_cpp/classes/global_constants.hpp"
 #include "godot_cpp/classes/wrapped.hpp"
 #include "godot_cpp/core/binder_common.hpp"
@@ -18,6 +16,8 @@ using namespace godot;
 //SubdivisionMesh is only for subdividing ImporterQuadMeshes
 class SubdivisionMesh : public RefCounted {
 	GDCLASS(SubdivisionMesh, RefCounted);
+
+private:
 	RID source_mesh; //ImporterQuadMesh
 	RID subdiv_mesh; //generated triangle mesh
 
@@ -45,5 +45,3 @@ public:
 	int64_t surface_get_vertex_array_size(int p_surface) const;
 	int64_t surface_get_index_array_size(int p_surface) const;
 };
-
-#endif
