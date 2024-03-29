@@ -7,7 +7,7 @@ func _init(import_mode_string: String, p_subdiv_level: int):
 	self.importer=TopologyDataImporter.new()
 	self.import_mode=_convert_string_to_import_mode(import_mode_string)
 	self.subdiv_level=p_subdiv_level
-	
+
 func _convert_string_to_import_mode(enum_string: String) -> int:
 	match enum_string:
 		"SubdivMeshInstance3D":
@@ -29,7 +29,7 @@ func convert_importer_mesh_instances_recursively(node: Node):
 		elif i is AnimationPlayer:
 			if import_mode==TopologyDataImporter.SUBDIV_MESHINSTANCE:
 				convert_animation_blend_shape_tracks(i)
-				
+
 #blend shape tracks don't work with SubdivMeshInstance3D
 func convert_animation_blend_shape_tracks(anim_player: AnimationPlayer):
 	for animation_library_name in anim_player.get_animation_library_list():
@@ -44,7 +44,7 @@ func convert_animation_blend_shape_tracks(anim_player: AnimationPlayer):
 					var blend_shape_name=String(old_track_path.get_subname(0))
 					var new_track_path=node_name+":"+"blend_shapes/"+blend_shape_name
 					animation.track_set_path(fake_anim, NodePath(new_track_path))
-					
+
 					for key_idx in range(0, animation.track_get_key_count(track_idx)):
 						var val=animation.track_get_key_value(track_idx, key_idx)
 						var time=animation.track_get_key_time(track_idx, key_idx)

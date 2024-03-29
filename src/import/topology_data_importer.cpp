@@ -96,7 +96,7 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 		}
 
 		ERR_FAIL_COND(!surface_arrays.size());
-		topology_data_mesh->add_surface(surface_arrays, topology_data_blend_shape_arrays,
+		topology_data_mesh->add_surface(surface_arrays, Dictionary(), topology_data_blend_shape_arrays,
 				importer_mesh->get_surface_material(surface_index), importer_mesh->get_surface_name(surface_index), format, topology_type);
 	}
 	//actually add blendshapes to data

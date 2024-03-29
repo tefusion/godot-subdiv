@@ -2,11 +2,9 @@
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/classes/surface_tool.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "subdivision/subdivision_mesh.hpp"
-#include "subdivision/subdivision_server.hpp"
 
-void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_shapes, const Ref<Material> &p_material,
-		const String &p_name, int32_t p_format, TopologyType p_topology_type) {
+void TopologyDataMesh::add_surface(const Array &p_arrays, const Dictionary &p_lods, const Array &p_blend_shapes, const Ref<Material> &p_material,
+		const String &p_name, BitField<Mesh::ArrayFormat> p_format, TopologyType p_topology_type) {
 	ERR_FAIL_COND(p_arrays.size() != TopologyDataMesh::ARRAY_MAX);
 	Surface s;
 	s.arrays = p_arrays;
@@ -14,6 +12,7 @@ void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_s
 	s.material = p_material;
 	s.format = p_format;
 	s.topology_type = p_topology_type;
+	s.lods = p_lods;
 	PackedVector3Array vertex_array = p_arrays[TopologyDataMesh::ARRAY_VERTEX];
 	int vertex_count = vertex_array.size();
 	ERR_FAIL_COND(vertex_count == 0);
@@ -29,10 +28,9 @@ void TopologyDataMesh::add_surface(const Array &p_arrays, const Array &p_blend_s
 	surfaces.push_back(s);
 }
 
-//this method gives the actual stored vertices
-Array TopologyDataMesh::surface_get_arrays(int p_index) const {
-	ERR_FAIL_INDEX_V(p_index, surfaces.size(), Array());
-	return surfaces[p_index].arrays;
+Array TopologyDataMesh::surface_get_arrays(int p_surface) const {
+	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), Array());
+	return surfaces[p_surface].arrays;
 }
 
 void TopologyDataMesh::_set_data(const Dictionary &p_data) {
@@ -63,9 +61,14 @@ void TopologyDataMesh::_set_data(const Dictionary &p_data) {
 			if (s.has("topology_type")) {
 				topology_type_num = s["topology_type"];
 			}
+			Dictionary lods;
+			if (s.has("lods")) {
+				lods = s["lods"];
+			}
+
 			TopologyType topology_type = static_cast<TopologyType>(topology_type_num);
 
-			add_surface(arr, b_shapes, material, name, format, topology_type);
+			add_surface(arr, lods, b_shapes, material, name, format, topology_type);
 		}
 	}
 }
@@ -95,6 +98,10 @@ Dictionary TopologyDataMesh::_get_data() const {
 			d["name"] = surfaces[i].name;
 		}
 
+		if (!surfaces[i].lods.is_empty()) {
+			d["lods"] = surfaces[i].lods;
+		}
+
 		surface_arr.push_back(d);
 	}
 	data["surfaces"] = surface_arr;
@@ -110,7 +117,7 @@ int64_t TopologyDataMesh::get_surface_count() const {
 	return surfaces.size();
 }
 
-int64_t TopologyDataMesh::surface_get_format(int64_t index) const {
+BitField<Mesh::ArrayFormat> TopologyDataMesh::surface_get_format(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, get_surface_count(), 0);
 	return surfaces[index].format;
 }
@@ -133,6 +140,12 @@ void TopologyDataMesh::surface_set_topology_type(int64_t index, TopologyType p_t
 TopologyDataMesh::TopologyType TopologyDataMesh::surface_get_topology_type(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, surfaces.size(), TopologyType::QUAD);
 	return surfaces[index].topology_type;
+}
+
+Dictionary TopologyDataMesh::surface_get_lods(int64_t surface_index) const {
+	ERR_FAIL_INDEX_V(surface_index, surfaces.size(), Dictionary());
+
+	return surfaces[surface_index].lods;
 }
 
 int64_t TopologyDataMesh::get_blend_shape_count() const {
@@ -162,7 +175,20 @@ void TopologyDataMesh::set_blend_shape_name(int64_t index, const StringName &p_n
 
 //only use after adding blend shape to surface
 void TopologyDataMesh::add_blend_shape_name(const StringName &p_name) {
-	blend_shapes.push_back(p_name);
+	StringName shape_name = p_name;
+	if (blend_shapes.has(shape_name)) {
+		//iterator code from godot, makes sure even if name exists blendshape added by generating different name
+		int count = 2;
+		do {
+			shape_name = String(p_name) + " " + itos(count);
+			count++;
+		} while (blend_shapes.has(shape_name));
+	}
+	blend_shapes.push_back(shape_name);
+}
+
+void TopologyDataMesh::add_surface_from_arrays(TopologyType p_topology_type, const Array &p_arrays, const Array &p_blend_shapes, const Dictionary &p_lods, BitField<Mesh::ArrayFormat> p_format) {
+	add_surface(p_arrays, p_lods, p_blend_shapes, Ref<Material>(), "", p_format, p_topology_type);
 }
 
 String TopologyDataMesh::surface_get_name(int p_surface) const {
@@ -174,18 +200,61 @@ void TopologyDataMesh::surface_set_name(int p_surface, const String &p_name) {
 	surfaces.write[p_surface].name = p_name;
 }
 
-//return vertex array length of surface
 int TopologyDataMesh::surface_get_length(int p_surface) {
 	ERR_FAIL_INDEX_V(p_surface, surfaces.size(), -1);
 	const PackedVector3Array &vertex_array = surfaces[p_surface].arrays[TopologyDataMesh::ARRAY_VERTEX];
 	return vertex_array.size();
 }
 
-void TopologyDataMesh::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("add_surface"), &TopologyDataMesh::add_surface);
+TopologyDataMesh::TopologyDataMesh() {
+}
 
+TopologyDataMesh::~TopologyDataMesh() {
+}
+
+void TopologyDataMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_set_data", "data"), &TopologyDataMesh::_set_data);
 	ClassDB::bind_method(D_METHOD("_get_data"), &TopologyDataMesh::_get_data);
 
 	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "_set_data", "_get_data");
+	ClassDB::bind_method(D_METHOD("add_surface", "p_arrays", "p_lods", "p_blend_shapes", "p_material", "p_name", "p_format", "p_topology_type"), &TopologyDataMesh::add_surface);
+	ClassDB::bind_method(D_METHOD("add_surface_from_arrays", "topology_type", "arrays", "blend_shapes", "lods", "format"), &TopologyDataMesh::add_surface_from_arrays, DEFVAL(Array()), DEFVAL(Dictionary()), DEFVAL(Mesh::ARRAY_FORMAT_VERTEX));
+	ClassDB::bind_method(D_METHOD("surface_get_arrays", "surface_index"), &TopologyDataMesh::surface_get_arrays);
+	ClassDB::bind_method(D_METHOD("clear"), &TopologyDataMesh::clear);
+	ClassDB::bind_method(D_METHOD("get_surface_count"), &TopologyDataMesh::get_surface_count);
+	ClassDB::bind_method(D_METHOD("surface_get_format", "index"), &TopologyDataMesh::surface_get_format);
+	ClassDB::bind_method(D_METHOD("surface_set_material", "index", "material"), &TopologyDataMesh::surface_set_material);
+	ClassDB::bind_method(D_METHOD("surface_set_topology_type", "index", "p_topology_type"), &TopologyDataMesh::surface_set_topology_type);
+	ClassDB::bind_method(D_METHOD("surface_get_topology_type", "index"), &TopologyDataMesh::surface_get_topology_type);
+	ClassDB::bind_method(D_METHOD("surface_get_lods", "surface_index"), &TopologyDataMesh::surface_get_lods);
+	ClassDB::bind_method(D_METHOD("get_blend_shape_count"), &TopologyDataMesh::get_blend_shape_count);
+	ClassDB::bind_method(D_METHOD("surface_get_blend_shape_arrays", "surface_index"), &TopologyDataMesh::surface_get_blend_shape_arrays);
+	ClassDB::bind_method(D_METHOD("surface_get_single_blend_shape_array", "surface_index", "blend_shape_idx"), &TopologyDataMesh::surface_get_single_blend_shape_array);
+	ClassDB::bind_method(D_METHOD("get_blend_shape_name", "index"), &TopologyDataMesh::get_blend_shape_name);
+	ClassDB::bind_method(D_METHOD("set_blend_shape_name", "index", "p_name"), &TopologyDataMesh::set_blend_shape_name);
+	ClassDB::bind_method(D_METHOD("add_blend_shape_name", "p_name"), &TopologyDataMesh::add_blend_shape_name);
+	ClassDB::bind_method(D_METHOD("surface_get_name", "p_surface"), &TopologyDataMesh::surface_get_name);
+	ClassDB::bind_method(D_METHOD("surface_set_name", "p_surface", "p_name"), &TopologyDataMesh::surface_set_name);
+	ClassDB::bind_method(D_METHOD("surface_get_length", "p_surface"), &TopologyDataMesh::surface_get_length);
+
+	//TopologyType
+	BIND_ENUM_CONSTANT(QUAD);
+	BIND_ENUM_CONSTANT(TRIANGLE);
+
+	//ArrayType
+	BIND_ENUM_CONSTANT(ARRAY_VERTEX);
+	BIND_ENUM_CONSTANT(ARRAY_NORMAL);
+	BIND_ENUM_CONSTANT(ARRAY_TANGENT);
+	BIND_ENUM_CONSTANT(ARRAY_COLOR);
+	BIND_ENUM_CONSTANT(ARRAY_TEX_UV);
+	BIND_ENUM_CONSTANT(ARRAY_TEX_UV2);
+	BIND_ENUM_CONSTANT(ARRAY_CUSTOM0);
+	BIND_ENUM_CONSTANT(ARRAY_CUSTOM1);
+	BIND_ENUM_CONSTANT(ARRAY_CUSTOM2);
+	BIND_ENUM_CONSTANT(ARRAY_CUSTOM3);
+	BIND_ENUM_CONSTANT(ARRAY_BONES);
+	BIND_ENUM_CONSTANT(ARRAY_WEIGHTS);
+	BIND_ENUM_CONSTANT(ARRAY_INDEX);
+	BIND_ENUM_CONSTANT(ARRAY_UV_INDEX);
+	BIND_ENUM_CONSTANT(ARRAY_MAX);
 }

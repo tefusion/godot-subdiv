@@ -2,12 +2,12 @@
 extends EditorScenePostImportPlugin
 
 func _get_import_options(path: String)->void:
-	add_import_option_advanced(TYPE_STRING, 
-	"subdivision/import_as", 
-	"ImporterMesh (bake at import)", 
-	PROPERTY_HINT_ENUM, 
+	add_import_option_advanced(TYPE_STRING,
+	"subdivision/import_as",
+	"ImporterMesh (bake at import)",
+	PROPERTY_HINT_ENUM,
 	"SubdivMeshInstance3D,BakedSubdivMesh (bake at runtime),ImporterMesh (bake at import)")
-	
+
 	add_import_option_advanced(TYPE_INT,
 	"subdivision/subdivision_level",
 	0,
