@@ -242,9 +242,9 @@ void SubdivMeshInstance3D::_update_skinning() {
 	int surface_count = get_mesh()->get_surface_count();
 
 	for (int surface_index = 0; surface_index < surface_count; ++surface_index) {
-		int32_t format = get_mesh()->surface_get_format(surface_index);
+		BitField<Mesh::ArrayFormat> format = get_mesh()->surface_get_format(surface_index);
 		ERR_CONTINUE(!(format & Mesh::ARRAY_FORMAT_BONES) || !(format & Mesh::ARRAY_FORMAT_WEIGHTS));
-		bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
+		bool double_bone_weights = format.has_flag(Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS);
 		int weights_per_vert = double_bone_weights ? 8 : 4;
 
 		Array mesh_arrays = _get_cached_data_array(surface_index);
@@ -252,7 +252,7 @@ void SubdivMeshInstance3D::_update_skinning() {
 		const PackedInt32Array &bones_array = mesh_arrays[TopologyDataMesh::ARRAY_BONES];
 		const PackedFloat32Array &weights_array = mesh_arrays[TopologyDataMesh::ARRAY_WEIGHTS];
 
-		ERR_FAIL_COND(bones_array.size() != weights_array.size() || bones_array.size() != vertex_array.size() * 4);
+		ERR_FAIL_COND(bones_array.size() != weights_array.size() || bones_array.size() != vertex_array.size() * weights_per_vert);
 
 		for (int vertex_index = 0; vertex_index < vertex_array.size(); ++vertex_index) {
 			int offset = vertex_index * weights_per_vert;
