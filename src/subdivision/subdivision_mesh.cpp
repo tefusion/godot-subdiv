@@ -16,6 +16,12 @@
 #include "triangle_subdivider.hpp"
 
 Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, TopologyDataMesh::TopologyType topology_type) {
+	const PackedVector3Array &vertex_array = p_arrays[TopologyDataMesh::ARRAY_VERTEX];
+	if (vertex_array.is_empty()) {
+		Array empty_surface;
+		empty_surface.resize(Mesh::ARRAY_MAX);
+		return empty_surface;
+	}
 	switch (topology_type) {
 		case TopologyDataMesh::QUAD: {
 			Ref<QuadSubdivider> subdivider;
@@ -56,14 +62,12 @@ void SubdivisionMesh::_update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t 
 
 		Array v_arrays = cached_data_arrays.size() ? cached_data_arrays[surface_index]
 												   : p_mesh->surface_get_arrays(surface_index);
-
 		Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, true, p_mesh->surface_get_topology_type(surface_index));
 
 		Ref<Material> material = p_mesh->surface_get_material(surface_index);
 		subdiv_mesh.add_surface(subdiv_triangle_arrays, Dictionary(), material, "", surface_format);
-
-		current_level = p_level;
 	}
+	current_level = p_level;
 }
 
 void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array,

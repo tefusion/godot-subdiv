@@ -26,6 +26,7 @@ void TopologyDataMesh::add_surface(const Array &p_arrays, const Dictionary &p_lo
 	}
 
 	surfaces.push_back(s);
+	emit_changed();
 }
 
 Array TopologyDataMesh::surface_get_arrays(int p_surface) const {
@@ -111,6 +112,7 @@ Dictionary TopologyDataMesh::_get_data() const {
 void TopologyDataMesh::clear() {
 	surfaces.clear();
 	blend_shapes.clear();
+	emit_changed();
 }
 
 int64_t TopologyDataMesh::get_surface_count() const {
@@ -125,6 +127,7 @@ BitField<Mesh::ArrayFormat> TopologyDataMesh::surface_get_format(int64_t index) 
 void TopologyDataMesh::surface_set_material(int64_t index, const Ref<Material> &material) {
 	ERR_FAIL_INDEX(index, surfaces.size());
 	surfaces.write[index].material = material;
+	emit_changed();
 }
 Ref<Material> TopologyDataMesh::surface_get_material(int64_t index) const {
 	ERR_FAIL_INDEX_V(index, surfaces.size(), Ref<Material>());
@@ -135,6 +138,7 @@ Ref<Material> TopologyDataMesh::surface_get_material(int64_t index) const {
 void TopologyDataMesh::surface_set_topology_type(int64_t index, TopologyType p_topology_type) {
 	ERR_FAIL_INDEX(index, surfaces.size());
 	surfaces.write[index].topology_type = p_topology_type;
+	emit_changed();
 }
 
 TopologyDataMesh::TopologyType TopologyDataMesh::surface_get_topology_type(int64_t index) const {

@@ -114,10 +114,17 @@ bool SubdivMeshInstance3D::_get(const StringName &p_name, Variant &return_value)
 
 //start of non editor stuff
 void SubdivMeshInstance3D::set_mesh(const Ref<TopologyDataMesh> &p_mesh) {
+	if (mesh.is_valid()) {
+		mesh->disconnect(StringName("changed"), Callable(this, "_mesh_changed"));
+	}
 	mesh = p_mesh;
-	_init_cached_data_array();
-	if (is_inside_tree()) {
-		_mesh_changed();
+	if (mesh.is_valid()) {
+		mesh->connect(StringName("changed"), Callable(this, "_mesh_changed"));
+
+		_init_cached_data_array();
+		if (is_inside_tree()) {
+			_mesh_changed();
+		}
 	}
 }
 
@@ -323,10 +330,11 @@ void SubdivMeshInstance3D::_update_subdiv() {
 		return;
 	}
 
-	if (get_mesh().is_null() && subdiv_mesh) {
+	if ((get_mesh().is_null() || get_mesh()->get_surface_count() == 0) && subdiv_mesh) {
 		subdiv_mesh->clear();
 		return;
 	}
+
 	if (!subdiv_mesh) {
 		SubdivisionServer *subdivision_server = SubdivisionServer::get_singleton();
 		ERR_FAIL_COND(!subdivision_server);
@@ -359,7 +367,13 @@ void SubdivMeshInstance3D::_init_cached_data_array() {
 	surface_override_materials.resize(mesh->get_surface_count());
 }
 void SubdivMeshInstance3D::_mesh_changed() {
-	ERR_FAIL_COND(mesh.is_null());
+	if (mesh.is_null()) {
+		return;
+	}
+
+	if (cached_data_array.size() != mesh->get_surface_count()) {
+		_init_cached_data_array();
+	}
 
 	uint32_t initialize_bs_from = blend_shape_tracks.size();
 	blend_shape_tracks.resize(mesh->get_blend_shape_count());
@@ -430,6 +444,7 @@ void SubdivMeshInstance3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_subdiv_level"), &SubdivMeshInstance3D::get_subdiv_level);
 
 	ClassDB::bind_method(D_METHOD("_update_skinning"), &SubdivMeshInstance3D::_update_skinning);
+	ClassDB::bind_method(D_METHOD("_mesh_changed"), &SubdivMeshInstance3D::_mesh_changed);
 
 	ClassDB::bind_method(D_METHOD("get_blend_shape_value", "blend_shape_idx"), &SubdivMeshInstance3D::get_blend_shape_value);
 	ClassDB::bind_method(D_METHOD("set_blend_shape_value", "blend_shape_idx", "value"), &SubdivMeshInstance3D::set_blend_shape_value);
