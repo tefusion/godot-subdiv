@@ -1,4 +1,5 @@
-![Version](https://img.shields.io/badge/Godot-v4.1-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
+![Version](https://img.shields.io/badge/Godot-v4.2-informational) ![License](https://img.shields.io/github/license/tefusion/godot-subdiv)
+
 # Godot Subdiv
 
 | ![UV Subdivision](UVSubdivision.gif) | ![Skinning subdivision](SkinningSubdivision.gif) |
@@ -19,7 +20,7 @@ Adjust the subdivision level, click reimport and you should see your mesh subdiv
 
 ### Modeling Tips
 
-OpenSubdiv has a great section on [modeling for subdivision](https://graphics.pixar.com/opensubdiv/docs/mod_notes.html). Not all of them apply for Godot Subdiv though: You can currently only import either quad only meshes to use the Catmull-Clark scheme or any other mesh which will default to the Loop subdivision scheme. 
+OpenSubdiv has a great section on [modeling for subdivision](https://graphics.pixar.com/opensubdiv/docs/mod_notes.html). Not all of them apply for Godot Subdiv though: You can currently only import either quad only meshes to use the Catmull-Clark scheme or any other mesh which will default to the Loop subdivision scheme.
 
 ### Building the project yourself
 
@@ -27,16 +28,21 @@ To build this project you need to have SCons installed, otherwise everything is 
 
 \
 For just building and trying out the project do
+
 ```bash
 scons target=template_debug
 ```
-in the cloned folder. 
+
+in the cloned folder.
 
 For running the tests do
+
 ```
 scons -Q tests=1 target=template_debug
 ```
+
 which will run simple doctest tests when starting godot on the terminal:
+
 ```
 path/to/godot --editor --path ${workspaceFolder}/project
 ```
