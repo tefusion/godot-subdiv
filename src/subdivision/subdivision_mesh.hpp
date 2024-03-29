@@ -9,6 +9,7 @@
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/vector.hpp"
 
+#include "rendering/local_mesh.h"
 #include "resources/topology_data_mesh.hpp"
 
 using namespace godot;
@@ -19,7 +20,7 @@ class SubdivisionMesh : public RefCounted {
 
 private:
 	RID source_mesh; //ImporterQuadMesh
-	RID subdiv_mesh; //generated triangle mesh
+	LocalMesh subdiv_mesh; //generated triangle mesh
 
 	int current_level = -1;
 
@@ -35,7 +36,6 @@ public:
 	~SubdivisionMesh();
 
 	RID get_rid() const;
-	void set_rid(RID p_rid);
 	void update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level);
 	void _update_subdivision(Ref<TopologyDataMesh> p_mesh, int p_level, const Vector<Array> &cached_data_arrays);
 	void update_subdivision_vertices(int p_surface, const PackedVector3Array &new_vertex_array,

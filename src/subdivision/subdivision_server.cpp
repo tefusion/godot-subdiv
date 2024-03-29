@@ -26,7 +26,6 @@ SubdivisionServer::~SubdivisionServer() {
 void SubdivisionServer::_bind_methods() {
 	ClassDB::bind_static_method("SubdivisionServer", D_METHOD("get_singleton"), &SubdivisionServer::get_singleton);
 	ClassDB::bind_method(D_METHOD("create_subdivision_mesh"), &SubdivisionServer::create_subdivision_mesh);
-	ClassDB::bind_method(D_METHOD("create_subdivision_mesh_with_rid"), &SubdivisionServer::create_subdivision_mesh_with_rid);
 	ClassDB::bind_method(D_METHOD("destroy_subdivision_mesh"), &SubdivisionServer::destroy_subdivision_mesh);
 }
 
@@ -34,13 +33,6 @@ SubdivisionMesh *SubdivisionServer::create_subdivision_mesh(const Ref<TopologyDa
 	SubdivisionMesh *subdiv_mesh = memnew(SubdivisionMesh);
 	subdiv_mesh->update_subdivision(p_mesh, p_level);
 
-	return subdiv_mesh;
-}
-
-SubdivisionMesh *SubdivisionServer::create_subdivision_mesh_with_rid(const Ref<TopologyDataMesh> &p_mesh, int32_t p_level, RID p_rid) {
-	SubdivisionMesh *subdiv_mesh = memnew(SubdivisionMesh);
-	subdiv_mesh->set_rid(p_rid);
-	subdiv_mesh->update_subdivision(p_mesh, p_level);
 	return subdiv_mesh;
 }
 

@@ -22,7 +22,6 @@ protected:
 public:
 	static SubdivisionServer *get_singleton();
 	SubdivisionMesh *create_subdivision_mesh(const Ref<TopologyDataMesh> &p_mesh, int32_t p_level);
-	SubdivisionMesh *create_subdivision_mesh_with_rid(const Ref<TopologyDataMesh> &p_mesh, int32_t p_level, RID p_rid);
 	void destroy_subdivision_mesh(Object *p_mesh_subdivision);
 	SubdivisionServer();
 	~SubdivisionServer();
