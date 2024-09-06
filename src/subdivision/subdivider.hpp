@@ -21,8 +21,9 @@ protected:
 	struct TopologyData {
 		PackedVector3Array vertex_array;
 		PackedVector3Array normal_array;
+		PackedColorArray color_array;
 		PackedVector2Array uv_array;
-		PackedInt32Array uv_index_array;
+		PackedInt32Array fvar_index_array;
 		PackedInt32Array index_array;
 		PackedInt32Array bones_array;
 		PackedFloat32Array weights_array;
@@ -31,9 +32,10 @@ protected:
 		int32_t index_count = 0;
 		int32_t face_count = 0;
 		int32_t vertex_count = 0;
-		int32_t uv_count = 0;
+		int32_t fvar_count = 0;
 		int32_t bone_count = 0;
 		int32_t weight_count = 0;
+
 		TopologyData(const Array &p_mesh_arrays, int32_t p_format, int32_t p_face_verts);
 		TopologyData() {}
 	};
@@ -72,7 +74,7 @@ protected:
 
 public:
 	enum Channels {
-		UV = 0
+		FV = 0
 	};
 
 	Array get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //Returns triangle faces for rendering

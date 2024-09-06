@@ -13,13 +13,17 @@ Array TriangleSubdivider::_get_triangle_arrays() const {
 	st.instantiate();
 
 	bool use_uv = topology_data.uv_array.size();
+	bool use_color = topology_data.color_array.size();
 	bool use_bones = topology_data.weights_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
 	st->begin(Mesh::PRIMITIVE_TRIANGLES);
 	for (int index = 0; index < topology_data.index_array.size(); index++) {
 		if (use_uv) {
-			st->set_uv(topology_data.uv_array[topology_data.uv_index_array[index]]);
+			st->set_uv(topology_data.uv_array[topology_data.fvar_index_array[index]]);
+		}
+		if (use_color) {
+			st->set_color(topology_data.color_array[topology_data.fvar_index_array[index]]);
 		}
 		if (has_normals) {
 			st->set_normal(topology_data.normal_array[topology_data.index_array[index]]);

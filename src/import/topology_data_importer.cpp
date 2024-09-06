@@ -36,6 +36,9 @@ TopologyDataImporter::SurfaceVertexArrays::SurfaceVertexArrays(const Array &p_me
 	if (p_mesh_arrays[Mesh::ARRAY_TEX_UV].get_type() == Variant::PACKED_VECTOR2_ARRAY)
 		uv_array = p_mesh_arrays[Mesh::ARRAY_TEX_UV];
 
+	if (p_mesh_arrays[Mesh::ARRAY_COLOR].get_type() == Variant::PACKED_COLOR_ARRAY)
+		color_array = p_mesh_arrays[Mesh::ARRAY_COLOR];
+
 	if (p_mesh_arrays[Mesh::ARRAY_BONES].get_type() == Variant::PACKED_INT32_ARRAY)
 		bones_array = p_mesh_arrays[Mesh::ARRAY_BONES];
 
@@ -160,8 +163,9 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays) {
 	ERR_FAIL_COND_V(!(format & Mesh::ARRAY_FORMAT_INDEX), TopologyDataMesh::TopologyType::QUAD);
 	TopologySurfaceData topology_surface = _remove_duplicate_vertices(surface, format);
-	bool is_quad = _merge_to_quads(topology_surface.index_array, topology_surface.uv_array, format);
+	bool is_quad = _merge_to_quads(topology_surface.index_array, topology_surface.uv_array, topology_surface.color_array, format);
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
+	bool has_color = format & Mesh::ARRAY_FORMAT_COLOR;
 
 	surface_arrays.resize(TopologyDataMesh::ARRAY_MAX);
 	surface_arrays[TopologyDataMesh::ARRAY_VERTEX] = topology_surface.vertex_array;
@@ -171,12 +175,22 @@ TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_
 	surface_arrays[TopologyDataMesh::ARRAY_WEIGHTS] = topology_surface.weights_array;
 	surface_arrays[TopologyDataMesh::ARRAY_INDEX] = topology_surface.index_array;
 	if (has_uv) {
-		PackedInt32Array uv_index_array = _generate_uv_index_array(topology_surface.uv_array);
+		PackedInt32Array fvar_index_array = _generate_varying_index_array(topology_surface.uv_array, topology_surface.color_array);
 		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = topology_surface.uv_array;
-		surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = uv_index_array;
+		surface_arrays[TopologyDataMesh::ARRAY_FV_INDEX] = fvar_index_array;
 	} else { //this is to avoid issues with casting null to Array when using these as reference
 		surface_arrays[TopologyDataMesh::ARRAY_TEX_UV] = PackedVector2Array();
-		surface_arrays[TopologyDataMesh::ARRAY_UV_INDEX] = PackedInt32Array();
+		surface_arrays[TopologyDataMesh::ARRAY_FV_INDEX] = PackedInt32Array();
+	}
+
+	//TODO: remove after abstraction
+	if (has_uv && has_color) {
+		surface_arrays[TopologyDataMesh::ARRAY_COLOR] = topology_surface.color_array;
+	} else {
+		if (has_color) {
+			WARN_PRINT("Ignoring color array. Currently color subdivision only works if a UV array exists since the needed varying index array is created with the help of uv data.");
+		}
+		surface_arrays[TopologyDataMesh::ARRAY_COLOR] = PackedColorArray();
 	}
 
 	if (is_quad) {
@@ -192,6 +206,7 @@ TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicat
 	bool has_skinning = (format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS);
 	bool double_bone_weights = format & Mesh::ARRAY_FLAG_USE_8_BONE_WEIGHTS;
 	bool has_normals = format & Mesh::ARRAY_FORMAT_NORMAL;
+	bool has_color = format & Mesh::ARRAY_FORMAT_COLOR;
 	//TODO: maybe add tangents, uv2 here too, considering that data is lost after subdivisions not that urgent
 
 	TopologySurfaceData topology_surface;
@@ -227,6 +242,10 @@ TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicat
 		if (has_uv) {
 			topology_surface.uv_array.append(surface.uv_array[index]);
 		}
+
+		if (has_color) {
+			topology_surface.color_array.append(surface.color_array[index]);
+		}
 	}
 
 	return topology_surface;
@@ -234,15 +253,17 @@ TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicat
 
 // Goes through index_array and always merges the 6 indices of 2 triangles to 1 quad (uv_array also updated)
 // returns boolean if conversion to quad was successful
-bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format) {
+bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int32_t format) {
 	if (index_array.size() % 6 != 0) {
 		return false;
 	}
 
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
+	bool has_color = format & Mesh::ARRAY_FORMAT_COLOR;
 
 	PackedInt32Array quad_index_array;
 	PackedVector2Array quad_uv_array;
+	PackedColorArray quad_color_array;
 	for (int i = 0; i < index_array.size(); i += 6) {
 		// initalize unshared with verts from triangle 1
 		PackedInt32Array unshared_verts;
@@ -288,34 +309,53 @@ bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, Packed
 			quad_uv_array.append(uv_array[pos_unshared_verts[1]]);
 			quad_uv_array.append(uv_array[pos_shared_verts[1]]);
 		}
+
+		if (has_color) {
+			quad_color_array.append(color_array[pos_unshared_verts[0]]);
+			quad_color_array.append(color_array[pos_shared_verts[0]]);
+			quad_color_array.append(color_array[pos_unshared_verts[1]]);
+			quad_color_array.append(color_array[pos_shared_verts[1]]);
+		}
 	}
 	index_array = quad_index_array;
 	uv_array = quad_uv_array;
+	color_array = quad_color_array;
 	return true;
 }
 
 // tries to store uv's as compact as possible with an index array, an additional index array
 // is needed for uv data, because the index array for the vertices connects faces while uv's
 // can still be different for faces even when it's the same vertex, works similar to _remove_duplicate_vertices
-PackedInt32Array TopologyDataImporter::_generate_uv_index_array(PackedVector2Array &uv_array) {
+PackedInt32Array TopologyDataImporter::_generate_varying_index_array(PackedVector2Array &uv_array, PackedColorArray &color_array) {
 	ERR_FAIL_COND_V(uv_array.is_empty(), PackedInt32Array());
 	int max_index = 0;
+	const bool use_color = color_array.size() > 0;
+	if (use_color) {
+		ERR_FAIL_COND_V(color_array.size() != uv_array.size(), PackedInt32Array());
+	}
+
 	HashMap<Vector2, int> found_uvs;
-	PackedInt32Array uv_index_array;
+	PackedInt32Array fvar_index_array;
 	PackedVector2Array packed_uv_array; // will overwrite the given uv_array before returning
-	for (int uv_index = 0; uv_index < uv_array.size(); uv_index++) {
-		Vector2 single_uv = uv_array[uv_index];
+	PackedColorArray packed_color_array;
+	for (int fv_index = 0; fv_index < uv_array.size(); fv_index++) {
+		Vector2 single_uv = uv_array[fv_index];
 		if (found_uvs.has(single_uv)) {
-			uv_index_array.append(found_uvs.get(single_uv));
+			fvar_index_array.append(found_uvs.get(single_uv));
 		} else {
 			packed_uv_array.append(single_uv);
-			uv_index_array.append(max_index);
+			if (use_color) {
+				packed_color_array.append(color_array[fv_index]);
+			}
+
+			fvar_index_array.append(max_index);
 			found_uvs.insert(single_uv, max_index);
 			max_index++;
 		}
 	}
 	uv_array = packed_uv_array;
-	return uv_index_array;
+	color_array = packed_color_array;
+	return fvar_index_array;
 }
 
 //same as remove duplicate vertices, just runs for every blend shape

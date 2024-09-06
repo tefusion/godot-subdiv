@@ -33,7 +33,7 @@ public:
 		ARRAY_BONES = Mesh::ARRAY_BONES,
 		ARRAY_WEIGHTS = Mesh::ARRAY_WEIGHTS,
 		ARRAY_INDEX = Mesh::ARRAY_INDEX,
-		ARRAY_UV_INDEX = Mesh::ARRAY_MAX, //just an index array for uv's (ARRAY_INDEX does not work with uv's anymore in favour of face connection)
+		ARRAY_FV_INDEX = Mesh::ARRAY_MAX, //just an index array for uv's (ARRAY_INDEX does not work with uv's anymore in favour of face connection)
 		ARRAY_MAX = Mesh::ARRAY_MAX + 1
 	};
 
@@ -71,7 +71,7 @@ public:
 		godot::PackedVector3Array vertex_array;
 		godot::PackedVector3Array normal_array;
 		godot::PackedVector2Array uv_array;
-		godot::PackedInt32Array uv_index_array;
+		godot::PackedInt32Array fvar_index_array;
 		godot::PackedInt32Array index_array;
 		godot::PackedFloat32Array bones_array;
 		godot::PackedFloat32Array weights_array;
@@ -80,7 +80,7 @@ public:
 			normal_array = p_mesh_arrays[TopologyDataMesh::ARRAY_NORMAL];
 			index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_INDEX];
 			uv_array = p_mesh_arrays[TopologyDataMesh::ARRAY_TEX_UV];
-			uv_index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_UV_INDEX];
+			fvar_index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_FV_INDEX];
 			if (p_mesh_arrays[TopologyDataMesh::ARRAY_BONES])
 				bones_array = p_mesh_arrays[TopologyDataMesh::ARRAY_BONES];
 

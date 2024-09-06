@@ -13,6 +13,7 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 	st.instantiate();
 
 	bool use_uv = topology_data.uv_array.size();
+	bool has_colors = topology_data.color_array.size();
 	bool use_bones = topology_data.bones_array.size();
 	bool has_normals = topology_data.normal_array.size();
 
@@ -23,7 +24,10 @@ Array QuadSubdivider::_get_triangle_arrays() const {
 		//after for loop unshared0 vertex will be at the positon quad_index in the new vertex_array in the SurfaceTool
 		for (int single_quad_index = quad_index; single_quad_index < quad_index + 4; single_quad_index++) {
 			if (use_uv) {
-				st->set_uv(topology_data.uv_array[topology_data.uv_index_array[single_quad_index]]);
+				st->set_uv(topology_data.uv_array[topology_data.fvar_index_array[single_quad_index]]);
+			}
+			if (has_colors) {
+				st->set_color(topology_data.color_array[topology_data.fvar_index_array[single_quad_index]]);
 			}
 
 			if (has_normals) {

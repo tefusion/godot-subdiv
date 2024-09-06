@@ -19,18 +19,21 @@ Subdivider::TopologyData::TopologyData(const Array &p_mesh_arrays, int32_t p_for
 	index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_INDEX];
 	if (p_format & Mesh::ARRAY_FORMAT_TEX_UV) {
 		uv_array = p_mesh_arrays[TopologyDataMesh::ARRAY_TEX_UV];
-		uv_index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_UV_INDEX];
+		fvar_index_array = p_mesh_arrays[TopologyDataMesh::ARRAY_FV_INDEX];
 	}
 	if ((p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS)) {
 		bones_array = p_mesh_arrays[TopologyDataMesh::ARRAY_BONES];
 		weights_array = p_mesh_arrays[TopologyDataMesh::ARRAY_WEIGHTS];
+	}
+	if (p_format & Mesh::ARRAY_FORMAT_COLOR) {
+		color_array = p_mesh_arrays[TopologyDataMesh::ARRAY_COLOR];
 	}
 
 	vertex_count_per_face = p_face_verts;
 	index_count = index_array.size();
 	face_count = index_array.size() / vertex_count_per_face;
 	vertex_count = vertex_array.size();
-	uv_count = uv_index_array.size();
+	fvar_count = fvar_index_array.size();
 	bone_count = bones_array.size();
 	weight_count = weights_array.size();
 }
@@ -59,6 +62,17 @@ struct VertexUV {
 	float u, v;
 };
 
+struct VertexColor {
+	void Clear() { r = g = b = a = 0; }
+	void AddWithWeight(VertexColor const &src, float weight) {
+		r += weight * src.r;
+		g += weight * src.g;
+		b += weight * src.b;
+		a += weight * src.a;
+	}
+	float r, g, b, a;
+};
+
 struct VertexWeights {
 	void Clear() {
 		for (int i = 0; i < weights.size(); i++) {
@@ -76,7 +90,7 @@ struct VertexWeights {
 };
 
 Descriptor Subdivider::_create_topology_descriptor(Vector<int> &subdiv_face_vertex_count, Descriptor::FVarChannel *channels, const int32_t p_format) {
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_varying = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	Descriptor desc;
 	desc.numVertices = topology_data.vertex_count;
@@ -88,9 +102,9 @@ Descriptor Subdivider::_create_topology_descriptor(Vector<int> &subdiv_face_vert
 	desc.numVertsPerFace = subdiv_face_vertex_count.ptr();
 
 	int num_channels = 0;
-	if (use_uv) {
-		channels[Channels::UV].numValues = topology_data.uv_count;
-		channels[Channels::UV].valueIndices = topology_data.uv_index_array.ptr();
+	if (use_varying) {
+		channels[Channels::FV].numValues = topology_data.fvar_count;
+		channels[Channels::FV].valueIndices = topology_data.fvar_index_array.ptr();
 		num_channels = 1;
 	}
 
@@ -101,12 +115,12 @@ Descriptor Subdivider::_create_topology_descriptor(Vector<int> &subdiv_face_vert
 }
 
 Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level, const int32_t p_format) {
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_varying = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	//create descriptor,
 	Vector<int> subdiv_face_vertex_count;
 	int num_channels = 0;
-	if (use_uv) {
+	if (use_varying) {
 		num_channels = 1;
 	}
 
@@ -128,14 +142,15 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 	refiner->RefineUniform(refine_options);
 
 	topology_data.vertex_count = refiner->GetNumVerticesTotal();
-	if (use_uv) {
-		topology_data.uv_count = refiner->GetNumFVarValuesTotal(Channels::UV);
+	if (use_varying) {
+		topology_data.fvar_count = refiner->GetNumFVarValuesTotal(Channels::FV);
 	}
 
 	return refiner;
 }
 void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format) {
 	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_color = p_format & Mesh::ARRAY_FORMAT_COLOR;
 	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 
 	int original_vertex_count = topology_data.vertex_array.size();
@@ -152,12 +167,22 @@ void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, con
 	}
 
 	if (use_uv) {
-		topology_data.uv_array.resize(topology_data.uv_count);
+		topology_data.uv_array.resize(topology_data.fvar_count);
 		VertexUV *src_uv = (VertexUV *)topology_data.uv_array.ptr();
 		for (int level = 0; level < p_level; ++level) {
-			VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(Channels::UV);
-			primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, Channels::UV);
+			VertexUV *dst_uv = src_uv + refiner->GetLevel(level).GetNumFVarValues(Channels::FV);
+			primvar_refiner.InterpolateFaceVarying(level + 1, src_uv, dst_uv, Channels::FV);
 			src_uv = dst_uv;
+		}
+	}
+
+	if (use_uv) {
+		topology_data.color_array.resize(topology_data.fvar_count);
+		VertexColor *src_color = (VertexColor *)topology_data.color_array.ptr();
+		for (int level = 0; level < p_level; ++level) {
+			VertexColor *dst_color = src_color + refiner->GetLevel(level).GetNumFVarValues(Channels::FV);
+			primvar_refiner.InterpolateFaceVarying(level + 1, src_color, dst_color, Channels::FV);
+			src_color = dst_color;
 		}
 	}
 
@@ -250,7 +275,7 @@ Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_le
 	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
 	arr[TopologyDataMesh::ARRAY_NORMAL] = topology_data.normal_array;
 	arr[TopologyDataMesh::ARRAY_TEX_UV] = topology_data.uv_array;
-	arr[TopologyDataMesh::ARRAY_UV_INDEX] = topology_data.uv_index_array;
+	arr[TopologyDataMesh::ARRAY_FV_INDEX] = topology_data.fvar_index_array;
 	arr[TopologyDataMesh::ARRAY_INDEX] = topology_data.index_array;
 	arr[TopologyDataMesh::ARRAY_BONES] = topology_data.bones_array;
 	arr[TopologyDataMesh::ARRAY_WEIGHTS] = topology_data.weights_array;
@@ -259,8 +284,6 @@ Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_le
 
 void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
 	ERR_FAIL_COND(p_level < 0);
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
-	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 
 	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
 	//if p_level not 0 subdivide mesh and store in topology_data again
@@ -286,15 +309,15 @@ OpenSubdiv::Sdc::SchemeType Subdivider::_get_refiner_type() const {
 
 void Subdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
 		const int32_t p_level, int32_t p_format) {
-	const bool use_uv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
+	const bool use_fv = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 	const bool use_bones = (p_format & Mesh::ARRAY_FORMAT_BONES) && (p_format & Mesh::ARRAY_FORMAT_WEIGHTS);
 
 	PackedInt32Array index_array;
-	PackedInt32Array uv_index_array;
+	PackedInt32Array fvar_index_array;
 
 	Far::TopologyLevel const &last_level = refiner->GetLevel(p_level);
 	int face_count_out = last_level.GetNumFaces();
-	int uv_index_offset = use_uv ? topology_data.uv_count - last_level.GetNumFVarValues(Channels::UV) : -1;
+	int uv_index_offset = use_fv ? topology_data.fvar_count - last_level.GetNumFVarValues(Channels::FV) : -1;
 
 	int vertex_index_offset = topology_data.vertex_count - last_level.GetNumVertices();
 	for (int face_index = 0; face_index < face_count_out; ++face_index) {
@@ -311,16 +334,16 @@ void Subdivider::_create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *ref
 			index_array.push_back(vertex_index_offset + face_vertices[face_vert_index]);
 		}
 
-		if (use_uv) {
-			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::UV);
+		if (use_fv) {
+			Far::ConstIndexArray face_uvs = last_level.GetFaceFVarValues(face_index, Channels::FV);
 			for (int face_vert_index = 0; face_vert_index < topology_data.vertex_count_per_face; face_vert_index++) {
-				uv_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
+				fvar_index_array.push_back(uv_index_offset + face_uvs[face_vert_index]);
 			}
 		}
 	}
 	topology_data.index_array = index_array;
-	if (use_uv) {
-		topology_data.uv_index_array = uv_index_array;
+	if (use_fv) {
+		topology_data.fvar_index_array = fvar_index_array;
 	}
 }
 

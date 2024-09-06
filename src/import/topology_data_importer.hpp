@@ -20,6 +20,7 @@ private:
 	struct TopologySurfaceData {
 		godot::PackedVector3Array vertex_array;
 		godot::PackedVector3Array normal_array;
+		godot::PackedColorArray color_array;
 		godot::PackedVector2Array uv_array;
 		godot::PackedInt32Array index_array;
 		godot::PackedInt32Array bones_array;
@@ -33,12 +34,13 @@ private:
 	struct SurfaceVertexArrays { //of imported triangle mesh
 		PackedVector3Array vertex_array;
 		PackedVector3Array normal_array;
+		PackedColorArray color_array;
 		PackedInt32Array index_array;
 		PackedVector2Array uv_array;
 		PackedInt32Array bones_array; //could be float or int array after docs
 		PackedFloat32Array weights_array;
 		SurfaceVertexArrays(const Array &p_mesh_arrays);
-		SurfaceVertexArrays(){};
+		SurfaceVertexArrays() {};
 	};
 
 	/**
@@ -71,18 +73,19 @@ private:
 	 * @param index_array Topology Index Array after removing duplicate vertices
 	 * @param uv_array Array of original UV's. UV's are in most cases different and part of the reason why
 	 * the Triangles even got split up at export even when they are at the same position
+	 * @param color_array Array of original colors. Also vertex variant like uv
 	 * @param format
 	 * @return true The mesh is a QuadMesh
 	 * @return false The mesh is not a QuadMesh and didn't merge faces -> fallback to TriangleMesh
 	 */
-	bool _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, int32_t format);
+	bool _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int32_t format);
 	/**
-	 * @brief Generates minimal needed UV index array (as vertex index array would cause data to be lost)
+	 * @brief Generates minimal needed FV index array (as vertex index array would cause data to be lost)
 	 *
 	 * @param uv_array
 	 * @return PackedInt32Array
 	 */
-	PackedInt32Array _generate_uv_index_array(PackedVector2Array &uv_array);
+	PackedInt32Array _generate_varying_index_array(PackedVector2Array &uv_array, PackedColorArray &color_array);
 	/**
 	 * @brief Goes through all of the above methods (remove_duplicate, merge_to_quads) and saves the result in surface_arrays
 	 *
