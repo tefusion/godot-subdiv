@@ -463,7 +463,7 @@ void SubdivMeshInstance3D::_bind_methods() {
 }
 
 SubdivMeshInstance3D::SubdivMeshInstance3D() {
-	subdiv_mesh = NULL;
+	subdiv_mesh = nullptr;
 	subdiv_level = 0;
 }
 
@@ -471,5 +471,5 @@ SubdivMeshInstance3D::~SubdivMeshInstance3D() {
 	if (subdiv_mesh) {
 		SubdivisionServer::get_singleton()->destroy_subdivision_mesh(subdiv_mesh);
 	}
-	subdiv_mesh = NULL;
+	subdiv_mesh = nullptr;
 }

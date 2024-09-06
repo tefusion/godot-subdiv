@@ -20,7 +20,7 @@ class SubdivisionMesh : public RefCounted {
 
 private:
 	RID source_mesh; //ImporterQuadMesh
-	LocalMesh subdiv_mesh; //generated triangle mesh
+	LocalMesh *subdiv_mesh; //generated triangle mesh
 
 	int current_level = -1;
 

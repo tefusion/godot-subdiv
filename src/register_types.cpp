@@ -15,6 +15,7 @@
 #include "subdivision/subdivision_mesh.hpp"
 #include "subdivision/subdivision_server.hpp"
 
+#include "rendering/local_mesh.h"
 #include "subdivision/quad_subdivider.hpp"
 #include "subdivision/subdivider.hpp"
 #include "subdivision/triangle_subdivider.hpp"
@@ -42,6 +43,7 @@ void gdextension_initialize(ModuleInitializationLevel p_level) {
 
 		ClassDB::register_class<TopologyDataMesh>();
 		ClassDB::register_class<BakedSubdivMesh>();
+		ClassDB::register_class<LocalMesh>();
 
 		_subdivision_server = memnew(SubdivisionServer);
 		Engine::get_singleton()->register_singleton("SubdivisionServer", _subdivision_server);

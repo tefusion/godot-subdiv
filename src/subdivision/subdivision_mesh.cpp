@@ -45,7 +45,7 @@ void SubdivisionMesh::update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t p
 }
 //just leave cached data arrays empty if you want to use p_mesh arrays
 void SubdivisionMesh::_update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t p_level, const Vector<Array> &cached_data_arrays) {
-	subdiv_mesh.clear_surfaces();
+	subdiv_mesh->clear_surfaces();
 	subdiv_vertex_count.clear();
 	subdiv_index_count.clear();
 
@@ -65,7 +65,7 @@ void SubdivisionMesh::_update_subdivision(Ref<TopologyDataMesh> p_mesh, int32_t 
 		Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, true, p_mesh->surface_get_topology_type(surface_index));
 
 		Ref<Material> material = p_mesh->surface_get_material(surface_index);
-		subdiv_mesh.add_surface(subdiv_triangle_arrays, Dictionary(), material, "", surface_format);
+		subdiv_mesh->add_surface(subdiv_triangle_arrays, Dictionary(), material, "", surface_format);
 	}
 	current_level = p_level;
 }
@@ -87,11 +87,11 @@ void SubdivisionMesh::update_subdivision_vertices(int p_surface, const PackedVec
 	// currently normal generation too slow to actually update
 	Array subdiv_triangle_arrays = _get_subdivided_arrays(v_arrays, p_level, surface_format, false, topology_type);
 
-	subdiv_mesh.update_surface_vertices(p_surface, subdiv_triangle_arrays);
+	subdiv_mesh->update_surface_vertices(p_surface, subdiv_triangle_arrays);
 }
 
 void SubdivisionMesh::clear() {
-	subdiv_mesh.clear_surfaces();
+	subdiv_mesh->clear_surfaces();
 	subdiv_vertex_count.clear();
 	subdiv_index_count.clear();
 }
@@ -107,7 +107,7 @@ int64_t SubdivisionMesh::surface_get_index_array_size(int p_surface) const {
 }
 
 RID SubdivisionMesh::get_rid() const {
-	return subdiv_mesh.get_rid();
+	return subdiv_mesh->get_rid();
 }
 
 void SubdivisionMesh::_bind_methods() {
@@ -115,10 +115,13 @@ void SubdivisionMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("update_subdivision"), &SubdivisionMesh::update_subdivision);
 }
 
-SubdivisionMesh::SubdivisionMesh() :
-		subdiv_mesh(LocalMesh()) {
+SubdivisionMesh::SubdivisionMesh() {
+	subdiv_mesh = memnew(LocalMesh);
 	current_level = 0;
 }
 
 SubdivisionMesh::~SubdivisionMesh() {
+	if (subdiv_mesh) {
+		memfree(subdiv_mesh);
+	}
 }
