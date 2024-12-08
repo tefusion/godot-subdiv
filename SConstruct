@@ -77,6 +77,12 @@ extension_name = "godot_subdiv"
 # if you do dev builds it currently appends .dev. This isn't compatible with the gdextension file so removing here
 build_suffix = env["suffix"].replace(".dev.", ".")
 
+# enable cache if provided (see build.yml)
+scons_cache_path = os.environ.get("SCONS_CACHE")
+if scons_cache_path != None:
+    CacheDir(scons_cache_path)
+    print("Scons cache enabled... (path: '" + scons_cache_path + "')")
+
 # Create the library target
 if env["platform"] == "macos":
     library = env.SharedLibrary(
