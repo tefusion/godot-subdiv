@@ -55,7 +55,7 @@ private:
 	 * @param format
 	 * @return TopologyDataImporter::TopologySurfaceData
 	 */
-	TopologyDataImporter::TopologySurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format);
+	TopologyDataImporter::TopologySurfaceData _remove_duplicate_vertices(const SurfaceVertexArrays &surface, int64_t format);
 	/**
 	 * @brief Uses the mesh_vertex_array to merge blendshape arrays the exact same way
 	 *
@@ -78,7 +78,7 @@ private:
 	 * @return true The mesh is a QuadMesh
 	 * @return false The mesh is not a QuadMesh and didn't merge faces -> fallback to TriangleMesh
 	 */
-	bool _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int32_t format);
+	bool _merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int64_t format);
 	/**
 	 * @brief Generates minimal needed FV index array (as vertex index array would cause data to be lost)
 	 *
@@ -94,7 +94,7 @@ private:
 	 * @param surface_arrays Free Array where the result can be stored
 	 * @return TopologyDataMesh::TopologyType
 	 */
-	TopologyDataMesh::TopologyType _generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays);
+	TopologyDataMesh::TopologyType _generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int64_t format, Array &surface_arrays);
 
 	/**
 	 * @brief Checks what arrays are not null and generates a format based on that

@@ -55,7 +55,7 @@ protected:
 		String name;
 		int32_t flags = 0;
 		AABB aabb;
-		int32_t format;
+		int64_t format;
 		TopologyType topology_type;
 		Dictionary lods;
 	};

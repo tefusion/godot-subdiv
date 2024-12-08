@@ -21,8 +21,12 @@ void LocalMesh::clear_surfaces() {
 }
 
 void LocalMesh::add_surface(const Array &p_arrays, const Dictionary &p_lods, const Ref<Material> &p_material,
-		const String &p_name, int32_t p_format) {
+		const String &p_name, int64_t p_format) {
 	RenderingServer *rendering_server = RenderingServer::get_singleton();
+
+	//TODO actually use new format
+	p_format |= RenderingServer::ARRAY_FLAG_FORMAT_VERSION_1; //doesn't actually do anything since 0, but we use this flag
+	p_format &= ~RenderingServer::ARRAY_FLAG_FORMAT_VERSION_2;
 
 	//add mesh and set material
 	rendering_server->mesh_add_surface_from_arrays(local_mesh, RenderingServer::PRIMITIVE_TRIANGLES, p_arrays, Array(), p_lods, p_format);

@@ -69,7 +69,7 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 	for (int surface_index = 0; surface_index < importer_mesh->get_surface_count(); surface_index++) {
 		//convert actual mesh data to quad
 		Array p_arrays = importer_mesh->get_surface_arrays(surface_index);
-		int32_t format = generate_fake_format(p_arrays); //importermesh surface_get_format just returns flags
+		int64_t format = generate_fake_format(p_arrays); //importermesh surface_get_format just returns flags
 
 		// generate_fake_format returns 0 if size != ARRAY_MAX
 		if (format == 0 || !(format & Mesh::ARRAY_FORMAT_VERTEX)) {
@@ -160,7 +160,7 @@ void TopologyDataImporter::convert_importer_meshinstance_to_subdiv(Object *impor
 	}
 }
 
-TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int32_t format, Array &surface_arrays) {
+TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_arrays(const SurfaceVertexArrays &surface, int64_t format, Array &surface_arrays) {
 	ERR_FAIL_COND_V(!(format & Mesh::ARRAY_FORMAT_INDEX), TopologyDataMesh::TopologyType::QUAD);
 	TopologySurfaceData topology_surface = _remove_duplicate_vertices(surface, format);
 	bool is_quad = _merge_to_quads(topology_surface.index_array, topology_surface.uv_array, topology_surface.color_array, format);
@@ -200,7 +200,7 @@ TopologyDataMesh::TopologyType TopologyDataImporter::_generate_topology_surface_
 	}
 }
 
-TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface, int32_t format) {
+TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicate_vertices(const SurfaceVertexArrays &surface, int64_t format) {
 	//these booleans decide what data gets stored, could be used directly with format, but I think this is more readable
 	bool has_uv = format & Mesh::ARRAY_FORMAT_TEX_UV;
 	bool has_skinning = (format & Mesh::ARRAY_FORMAT_BONES) && (format & Mesh::ARRAY_FORMAT_WEIGHTS);
@@ -253,7 +253,7 @@ TopologyDataImporter::TopologySurfaceData TopologyDataImporter::_remove_duplicat
 
 // Goes through index_array and always merges the 6 indices of 2 triangles to 1 quad (uv_array also updated)
 // returns boolean if conversion to quad was successful
-bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int32_t format) {
+bool TopologyDataImporter::_merge_to_quads(PackedInt32Array &index_array, PackedVector2Array &uv_array, PackedColorArray &color_array, int64_t format) {
 	if (index_array.size() % 6 != 0) {
 		return false;
 	}
@@ -392,7 +392,7 @@ Array TopologyDataImporter::_generate_packed_blend_shapes(const Array &tri_blend
 int32_t TopologyDataImporter::generate_fake_format(const Array &arrays) const {
 	ERR_FAIL_COND_V(arrays.size() != Mesh::ARRAY_MAX, 0);
 	ERR_FAIL_COND_V(arrays[Mesh::ARRAY_VERTEX].get_type() != Variant::PACKED_VECTOR3_ARRAY, 0);
-	int32_t format = Mesh::ARRAY_FORMAT_VERTEX;
+	int64_t format = Mesh::ARRAY_FORMAT_VERTEX;
 
 	if (arrays[Mesh::ARRAY_NORMAL].get_type() == Variant::PACKED_VECTOR3_ARRAY)
 		format |= Mesh::ARRAY_FORMAT_NORMAL;

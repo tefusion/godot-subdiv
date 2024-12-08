@@ -50,7 +50,7 @@ public:
 	 * @param p_format
 	 */
 	void add_surface(const Array &p_arrays, const Dictionary &p_lods, const Ref<Material> &p_material,
-			const String &p_name, int32_t p_format);
+			const String &p_name, int64_t p_format);
 
 	/**
 	 * @brief Update vertex, tangent and normal of a surface

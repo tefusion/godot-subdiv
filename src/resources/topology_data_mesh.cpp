@@ -45,7 +45,7 @@ void TopologyDataMesh::_set_data(const Dictionary &p_data) {
 			Dictionary s = surface_arr[i];
 			ERR_CONTINUE(!s.has("arrays"));
 			Array arr = s["arrays"];
-			int32_t format = s["format"];
+			int64_t format = s["format"];
 			String name;
 			if (s.has("name")) {
 				name = s["name"];
