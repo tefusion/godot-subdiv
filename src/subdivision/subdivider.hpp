@@ -7,8 +7,10 @@
 
 #include "far/primvarRefiner.h"
 #include "far/topologyDescriptor.h"
+#include "refiner_options.hpp"
 
 using namespace godot;
+using namespace OpenSubdiv;
 
 class Subdivider : public RefCounted {
 	GDCLASS(Subdivider, RefCounted);
@@ -55,11 +57,12 @@ protected:
 	 * @param p_level
 	 * @param p_format
 	 * @param calculate_normals
+	 * @param p_refiner_options use SubdivRefinerOptions::default_options if not using
 	 */
-	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals);
+	void subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Sdc::Options &p_refiner_options);
 	OpenSubdiv::Far::TopologyDescriptor _create_topology_descriptor(Vector<int> &subdiv_face_vertex_count,
 			OpenSubdiv::Far::TopologyDescriptor::FVarChannel *channels, const int32_t p_format);
-	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels);
+	OpenSubdiv::Far::TopologyRefiner *_create_topology_refiner(const int32_t p_level, const int num_channels, const Sdc::Options &p_refiner_options);
 	void _create_subdivision_vertices(OpenSubdiv::Far::TopologyRefiner *refiner, const int p_level, const int32_t p_format);
 	void _create_subdivision_faces(OpenSubdiv::Far::TopologyRefiner *refiner,
 			const int32_t p_level, const int32_t p_format);
@@ -77,6 +80,6 @@ public:
 		FV = 0
 	};
 
-	Array get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //Returns triangle faces for rendering
-	Array get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals); //returns actual face data
+	Array get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Ref<SubdivRefinerOptions> &p_refiner_options); //Returns triangle faces for rendering
+	Array get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Ref<SubdivRefinerOptions> &p_refiner_options); //returns actual face data
 };

@@ -114,7 +114,7 @@ Descriptor Subdivider::_create_topology_descriptor(Vector<int> &subdiv_face_vert
 	return desc;
 }
 
-Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level, const int32_t p_format) {
+Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level, const int32_t p_format, const Sdc::Options &p_refiner_options) {
 	const bool use_varying = p_format & Mesh::ARRAY_FORMAT_TEX_UV;
 
 	//create descriptor,
@@ -128,8 +128,7 @@ Far::TopologyRefiner *Subdivider::_create_topology_refiner(const int32_t p_level
 	Descriptor desc = _create_topology_descriptor(subdiv_face_vertex_count, channels, p_format);
 
 	Sdc::SchemeType type = _get_refiner_type();
-	Sdc::Options options;
-	options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
+	Sdc::Options options = p_refiner_options;
 
 	Far::TopologyRefinerFactory<Descriptor>::Options create_options(type, options);
 
@@ -262,14 +261,14 @@ void Subdivider::_create_subdivision_vertices(Far::TopologyRefiner *refiner, con
 	}
 }
 
-Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
+Array Subdivider::get_subdivided_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Ref<SubdivRefinerOptions> &p_refiner_options) {
+	subdivide(p_arrays, p_level, p_format, calculate_normals, p_refiner_options->to_sdc());
 	return _get_triangle_arrays();
 }
 
-Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Ref<SubdivRefinerOptions> &p_refiner_options) {
 	ERR_FAIL_COND_V(p_level <= 0, Array());
-	subdivide(p_arrays, p_level, p_format, calculate_normals);
+	subdivide(p_arrays, p_level, p_format, calculate_normals, p_refiner_options->to_sdc());
 	Array arr;
 	arr.resize(TopologyDataMesh::ARRAY_MAX);
 	arr[TopologyDataMesh::ARRAY_VERTEX] = topology_data.vertex_array;
@@ -282,13 +281,13 @@ Array Subdivider::get_subdivided_topology_arrays(const Array &p_arrays, int p_le
 	return arr;
 }
 
-void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals) {
+void Subdivider::subdivide(const Array &p_arrays, int p_level, int32_t p_format, bool calculate_normals, const Sdc::Options &p_refiner_options) {
 	ERR_FAIL_COND(p_level < 0);
 
 	topology_data = TopologyData(p_arrays, p_format, _get_vertices_per_face_count());
 	//if p_level not 0 subdivide mesh and store in topology_data again
 	if (p_level != 0) {
-		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format);
+		Far::TopologyRefiner *refiner = _create_topology_refiner(p_level, p_format, p_refiner_options);
 		ERR_FAIL_COND_MSG(!refiner, "Refiner couldn't be created, numVertsPerFace array likely lost.");
 		_create_subdivision_vertices(refiner, p_level, p_format);
 		_create_subdivision_faces(refiner, p_level, p_format);
@@ -385,6 +384,6 @@ Array Subdivider::_get_direct_triangle_arrays() const {
 }
 
 void Subdivider::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_subdivided_arrays"), &Subdivider::get_subdivided_arrays);
-	ClassDB::bind_method(D_METHOD("get_subdivided_topology_arrays"), &Subdivider::get_subdivided_topology_arrays);
+	ClassDB::bind_method(D_METHOD("get_subdivided_arrays", "arrays", "level", "format", "calculate_normals", "refiner_options"), &Subdivider::get_subdivided_arrays);
+	ClassDB::bind_method(D_METHOD("get_subdivided_topology_arrays", "arrays", "level", "format", "calculate_normals", "refiner_options"), &Subdivider::get_subdivided_topology_arrays);
 }

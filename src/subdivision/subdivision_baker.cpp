@@ -8,13 +8,13 @@ Array SubdivisionBaker::get_baked_arrays(const Array &topology_arrays, int p_lev
 		case TopologyDataMesh::QUAD: {
 			Ref<QuadSubdivider> subdivider;
 			subdivider.instantiate();
-			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true, SubdivRefinerOptions::default_options());
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
 			Ref<TriangleSubdivider> subdivider;
 			subdivider.instantiate();
-			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true);
+			return subdivider->get_subdivided_arrays(topology_arrays, p_level, p_format, true, SubdivRefinerOptions::default_options());
 		}
 
 		default:

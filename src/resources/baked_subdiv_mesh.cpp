@@ -86,9 +86,9 @@ bool BakedSubdivMesh::_get(const StringName &p_name, Variant &r_ret) {
 }
 
 void BakedSubdivMesh::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("sedata_mesh", "data_mesh"), &BakedSubdivMesh::set_data_mesh);
-	ClassDB::bind_method(D_METHOD("gedata_mesh"), &BakedSubdivMesh::get_data_mesh);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "data_mesh", PROPERTY_HINT_RESOURCE_TYPE, "TopologyDataMesh"), "sedata_mesh", "gedata_mesh");
+	ClassDB::bind_method(D_METHOD("set_data_mesh", "data_mesh"), &BakedSubdivMesh::set_data_mesh);
+	ClassDB::bind_method(D_METHOD("get_data_mesh"), &BakedSubdivMesh::get_data_mesh);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "data_mesh", PROPERTY_HINT_RESOURCE_TYPE, "TopologyDataMesh"), "set_data_mesh", "get_data_mesh");
 	ClassDB::bind_method(D_METHOD("set_subdiv_level", "subdiv_level"), &BakedSubdivMesh::set_subdiv_level);
 	ClassDB::bind_method(D_METHOD("get_subdiv_level"), &BakedSubdivMesh::get_subdiv_level);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "subdiv_level", PROPERTY_HINT_RANGE, "0,6"), "set_subdiv_level", "get_subdiv_level");

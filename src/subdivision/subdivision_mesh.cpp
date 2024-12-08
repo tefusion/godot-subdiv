@@ -26,13 +26,13 @@ Array SubdivisionMesh::_get_subdivided_arrays(const Array &p_arrays, int p_level
 		case TopologyDataMesh::QUAD: {
 			Ref<QuadSubdivider> subdivider;
 			subdivider.instantiate();
-			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals, SubdivRefinerOptions::default_options());
 		}
 
 		case TopologyDataMesh::TRIANGLE: {
 			Ref<TriangleSubdivider> subdivider;
 			subdivider.instantiate();
-			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals);
+			return subdivider->get_subdivided_arrays(p_arrays, p_level, p_format, calculate_normals, SubdivRefinerOptions::default_options());
 		}
 
 		default:

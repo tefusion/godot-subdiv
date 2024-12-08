@@ -57,7 +57,14 @@ void SubdivRefinerOptions::set_triangle_subdivision(SubdivTriangleSubdivision::T
 	options.SetTriangleSubdivision(static_cast<OpenSubdiv::Sdc::Options::TriangleSubdivision>(triangle_subdivision));
 }
 
-OpenSubdivSdcOptions SubdivRefinerOptions::get_options() const {
+OpenSubdivSdcOptions SubdivRefinerOptions::to_sdc() const {
+	return options;
+}
+
+Ref<SubdivRefinerOptions> SubdivRefinerOptions::default_options() {
+	Ref<SubdivRefinerOptions> options;
+	options.instantiate();
+	options->set_vtx_boundary_interpolation(SubdivVtxBoundaryInterpolation::VTX_BOUNDARY_EDGE_ONLY);
 	return options;
 }
 

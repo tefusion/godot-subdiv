@@ -81,7 +81,10 @@ public:
 	SubdivTriangleSubdivision::TriangleSubdivision get_triangle_subdivision() const;
 	void set_triangle_subdivision(SubdivTriangleSubdivision::TriangleSubdivision triangle_subdivision);
 
-	OpenSubdivSdcOptions get_options() const;
+	OpenSubdivSdcOptions to_sdc() const;
+
+	//options that were previously hardcoded to be used in other classes till those expose options as well TODO: remove once options available everywhere
+	static Ref<SubdivRefinerOptions> default_options();
 
 protected:
 	static void _bind_methods();
