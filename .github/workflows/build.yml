@@ -93,8 +93,8 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Set up SCons cache
-        uses: actions/cache@v3
+      - name: Setup SCons cache
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/.scons-cache/
@@ -109,7 +109,7 @@ jobs:
       - name: Compile extension
         shell: sh
         env:
-          SCONS_CACHE: '${{ github.workspace }}/.scons-cache/'
+          SCONS_CACHE: "${{ github.workspace }}/.scons-cache/"
           SCONS_CACHE_LIMIT: 4096
         run: |
           scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' -j2
@@ -134,7 +134,7 @@ jobs:
           path: |
             ${{ github.workspace }}/project/
 
-  merge:
+  merge-artifacts:
     runs-on: ubuntu-20.04
     needs: build
     steps:
