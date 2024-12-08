@@ -17,6 +17,7 @@
 
 #include "rendering/local_mesh.h"
 #include "subdivision/quad_subdivider.hpp"
+#include "subdivision/refiner_options.hpp"
 #include "subdivision/subdivider.hpp"
 #include "subdivision/triangle_subdivider.hpp"
 #ifdef TESTS_ENABLED
@@ -29,6 +30,12 @@ static SubdivisionServer *_subdivision_server;
 
 void gdextension_initialize(ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+		ClassDB::register_class<SubdivRefinerOptions>();
+		ClassDB::register_class<SubdivVtxBoundaryInterpolation>();
+		ClassDB::register_class<SubdivFVarLinearInterpolation>();
+		ClassDB::register_class<SubdivCreasingMethod>();
+		ClassDB::register_class<SubdivTriangleSubdivision>();
+
 		ClassDB::register_class<Subdivider>();
 		ClassDB::register_class<QuadSubdivider>();
 		ClassDB::register_class<TriangleSubdivider>();
