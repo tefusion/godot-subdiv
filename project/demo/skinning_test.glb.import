@@ -1,6 +1,7 @@
 [remap]
 
-importer="godot-subdiv.importer"
+importer="scene"
+importer_version=1
 type="PackedScene"
 uid="uid://uu46rcmtibe6"
 path="res://.godot/imported/skinning_test.glb-057980e2b0ac30f85636ac20da7d168e.scn"
@@ -12,5 +13,26 @@ dest_files=["res://.godot/imported/skinning_test.glb-057980e2b0ac30f85636ac20da7
 
 [params]
 
-import_as="ArrayMesh (bake at import)"
-sudbivision_level=3
+nodes/root_type=""
+nodes/root_name=""
+nodes/apply_root_scale=true
+nodes/root_scale=1.0
+nodes/import_as_skeleton_bones=false
+meshes/ensure_tangents=true
+meshes/generate_lods=true
+meshes/create_shadow_meshes=true
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
+meshes/force_disable_compression=false
+skins/use_named_skins=true
+animation/import=true
+animation/fps=30
+animation/trimming=false
+animation/remove_immutable_tracks=true
+animation/import_rest_as_RESET=false
+import_script/path=""
+_subresources={}
+subdivision/import_as="SubdivMeshInstance3D"
+subdivision/subdivision_level=1
+gltf/naming_version=0
+gltf/embedded_image_handling=1
