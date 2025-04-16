@@ -1,136 +1,104 @@
-name: 🛠️ Builds
+name: Build GDExtension
 on:
+  workflow_call:
   push:
   pull_request:
-  workflow_dispatch:
+  merge_group:
 
 jobs:
   build:
-    runs-on: ${{ matrix.runner }}
-    name: ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - identifier: linux-debug
-            name: Linux Debug
-            runner: ubuntu-20.04
-            target: template_debug
-            platform: linux
-            arch: x86_64
-          - identifier: linux-release
-            name: Linux Release
-            runner: ubuntu-20.04
-            target: template_release
-            platform: linux
-            arch: x86_64
-          - identifier: windows-debug
-            name: Windows Debug
-            runner: ubuntu-20.04
-            target: template_debug
-            platform: windows
-            arch: x86_64
-          - identifier: windows-release
-            name: Windows Release
-            runner: ubuntu-20.04
-            target: template_release
-            platform: windows
-            arch: x86_64
-          - identifier: android-release
-            name: Android Release
-            runner: ubuntu-20.04
-            target: template_release
-            platform: android
-            arch: arm64
+        # A build is made for every possible combination of parameters
+        # You can add or remove entries from the arrays of each parameter to custimize which builds you want to run
+        # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
+        target:
+          [
+            { platform: linux, arch: x86_64, os: ubuntu-22.04 },
+            { platform: windows, arch: x86_64, os: windows-latest },
+            { platform: windows, arch: x86_32, os: windows-latest },
+            { platform: macos, arch: universal, os: macos-latest },
+            { platform: android, arch: arm64, os: ubuntu-22.04 },
+            { platform: android, arch: arm32, os: ubuntu-22.04 },
+            { platform: android, arch: x86_64, os: ubuntu-22.04 },
+            { platform: android, arch: x86_32, os: ubuntu-22.04 },
+            { platform: ios, arch: arm64, os: macos-latest },
+            { platform: web, arch: wasm32, os: ubuntu-22.04 }
+          ]
+        target-type: [template_debug, template_release]
+        float-precision: [single, double]
 
+    runs-on: ${{ matrix.target.os }}
     steps:
-      - name: (Windows) Install mingw64
-        if: ${{ startsWith(matrix.identifier, 'windows-') }}
-        shell: sh
-        run: |
-          sudo apt-get install mingw-w64
-          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
-
-      - name: (Android) Install JDK 17
-        if: ${{ startsWith(matrix.identifier, 'android-') }}
-        uses: actions/setup-java@v3
+      # Clone this repository
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          java-version: 17
-          distribution: temurin
+          submodules: true
 
-      - name: (Android) Install Android SDK
-        if: ${{ startsWith(matrix.identifier, 'android-') }}
-        uses: android-actions/setup-android@v3
-
-      # From Godot docs, might not be necessary.
-      #- name: (Android) Install Android Tools
-      #  if: ${{ startsWith(matrix.identifier, 'android-') }}
-      #  shell: sh
+      # Lint
+      #- name: Setup clang-format
+      #  shell: bash
       #  run: |
-      #    "$ANDROID_SDK_ROOT"/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "build-tools;30.0.3" "platforms;android-29" "cmdline-tools;latest" "cmake;3.10.2.4988404"
+      #    python -m pip install clang-format
+      #- name: Run clang-format
+      #  shell: bash
+      #  run: |
+      #    clang-format src/** --dry-run --Werror
 
-      - name: (Android) Install NDK r23c
-        if: ${{ matrix.platform == 'android' }}
-        uses: nttld/setup-ndk@v1
+      # Setup dependencies
+      - name: Setup godot-cpp
+        uses: ./godot-cpp/.github/actions/setup-godot-cpp
         with:
-          ndk-version: r23c
-          link-to-sdk: true
+          platform: ${{ matrix.target.platform }}
+          em-version: 3.1.62
 
-      - name: Install Python
-        uses: actions/setup-python@v2
+      # Build GDExtension (with caches)
 
-      - name: Install SCons
-        shell: bash
-        run: |
-          python -c "import sys; print(sys.version)"
-          python -m pip install scons
-          scons --version
-
-      - name: Checkout project
-        uses: actions/checkout@v3
+      - name: Restore .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-restore
         with:
-          submodules: recursive
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
 
-      #       TODO: Cache doesn't work yet. SCons rebuilds the objects even if they already exist. Could be caused by modification dates or extension_api.json.
-      #             fetch-depth: 0 May be needed for cache. See: <https://github.com/actions/checkout/issues/468>.
-      #      - name: Set up SCons cache
-      #        uses: actions/cache@v3
-      #        with:
-      #          path: |
-      #            ${{ github.workspace }}/.scons-cache/
-      #            ${{ github.workspace }}/**/.sconsign.dblite
-      #            ${{ github.workspace }}/godot-cpp/gen/
-      #          key: ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
-      #          restore-keys: |
-      #            ${{ matrix.identifier }}-${{ github.ref }}-${{ github.sha }}
-      #            ${{ matrix.identifier }}-${{ github.ref }}
-      #            ${{ matrix.identifier }}
-
-      - name: Compile extension
+      - name: Build GDExtension Debug Build
         shell: sh
-        #        env:
-        #          SCONS_CACHE: '${{ github.workspace }}/.scons-cache/'
-        #          SCONS_CACHE_LIMIT: 8192
+        env:
+          SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
         run: |
-          scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' -j2
-          ls -l project/addons/*/bin/
+          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
 
-      - name: Copy README and Licensing files
-        shell: sh
-        run: |
-          for addon in ${{ github.workspace }}/project/addons/*/; do
-            cp --no-clobber '${{ github.workspace }}/README.md' '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/AUTHORS.md' '${{ github.workspace }}/THIRDPARTY.md' "$addon"
-          done
-      - name: Remove unwanted files from artifact
-        shell: sh
-        run: |
-          rm -rf ${{ github.workspace }}/project/test
-          rm ${{ github.workspace }}/project/project.godot ${{ github.workspace }}/project/.gitignore ${{ github.workspace }}/project/.gitattributes
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+      - name: Save .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-save
         with:
-          name: godot-subdiv
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      # Clean up compilation files
+      - name: Windows - Delete compilation files
+        if: ${{ matrix.target.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          Remove-Item bin/* -Include *.exp,*.lib,*.pdb -Force
+
+      # Upload the build
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-cpp-template-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           path: |
-            ${{ github.workspace }}/project/
+            ${{ github.workspace }}/bin/**
+
+  # Merges all the build artifacts together into a single godot-cpp-template artifact.
+  # If you comment out this step, all the builds will be uploaded individually.
+  merge:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: godot-cpp-template
+          pattern: godot-cpp-template-*
+          delete-merged: true

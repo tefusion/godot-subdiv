@@ -72,31 +72,21 @@ if (run_tests):
 addon_path = "project/addons/godot_subdiv"
 
 # Find the extension name from the gdextension file (e.g. example).
-extension_name = "godot_subdiv"
+libname = "godot_subdiv"
 
-# if you do dev builds it currently appends .dev. This isn't compatible with the gdextension file so removing here
-build_suffix = env["suffix"].replace(".dev.", ".")
+# .dev doesn't inhibit compatibility, so we don't need to key it.
+# .universal just means "compatible with all relevant arches" so we don't need to key it.
+suffix = env['suffix'].replace(".dev", "").replace(".universal", "")
+
+lib_filename = "{}{}{}{}".format(env.subst('$SHLIBPREFIX'), libname, suffix, env.subst('$SHLIBSUFFIX'))
+
 
 # Create the library target
-if env["platform"] == "macos":
-    library = env.SharedLibrary(
-        "{}/bin/lib{}.{}.{}.framework/{1}.{2}.{3}".format(
-            addon_path,
-            extension_name,
-            env["platform"],
-            env["target"],
-        ),
-        source=sources,
-    )
-else:
-    library = env.SharedLibrary(
-        "{}/bin/lib{}{}{}".format(
-            addon_path,
-            extension_name,
-            build_suffix,
-            env["SHLIBSUFFIX"]
-        ),
-        source=sources,
-    )
+
+library = env.SharedLibrary(
+    "bin/{}/{}".format(env['platform'], lib_filename),
+    source=sources,
+)
+
 
 Default(library)
